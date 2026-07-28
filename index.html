@@ -587,16 +587,27 @@ function startCountdown(waUrl){
 }
 
 function openWhatsAppUrl(url){
+  let fallbackUrl = url;
+  let encodedText = '';
+
   try {
-    const popup = window.open(url, '_blank', 'noopener,noreferrer');
+    const parsed = new URL(url);
+    if(parsed.searchParams.get('text')){
+      encodedText = parsed.searchParams.get('text');
+      fallbackUrl = `https://wa.me/${WHATSAPP_NUMBER}${encodedText ? '?text=' + encodedText : ''}`;
+    }
+  } catch (e) {}
+
+  const deepLink = `whatsapp://send?phone=${WHATSAPP_NUMBER}${encodedText ? '&text=' + encodedText : ''}`;
+
+  try {
+    const popup = window.open(deepLink, '_blank', 'noopener,noreferrer');
     if(popup && !popup.closed){ popup.opener = null; return true; }
   } catch (e) {}
 
   try {
     const link = document.createElement('a');
-    link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    link.href = deepLink;
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
@@ -604,7 +615,18 @@ function openWhatsAppUrl(url){
     return true;
   } catch (e) {}
 
-  try { window.location.href = url; return true; } catch (e) {}
+  try {
+    window.location.href = deepLink;
+    return true;
+  } catch (e) {}
+
+  try {
+    window.setTimeout(()=>{
+      window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+    }, 800);
+    return true;
+  } catch (e) {}
+
   return false;
 }
 
@@ -628,7 +650,7 @@ function openExternalLink(url){
 }
 
 function openWhatsAppAuto(url){
-  const opened = openExternalLink(url);
+  const opened = openWhatsAppUrl(url);
   if(!opened){
     toast("⚠️ WhatsApp looma furin. Fadlan taabo 'Fur WhatsApp Hadda'.");
   }
