@@ -546,19 +546,11 @@ function confirmBooking(){
   const ussdCode = `*712*${USSD_PAY_NUMBER}*${fee}#`;
   const telUrl = 'tel:' + ussdCode;
 
-  // ===== 2) TRIGGER USSD IMMEDIATELY — NO DELAYS =====
-  // Method A: Direct location change (fastest on Android)
-  window.location.href = telUrl;
-  // Method B: Hidden anchor click (best for iOS Safari)
-  const a = document.createElement('a');
-  a.href = telUrl;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  // ===== 2) TRIGGER USSD IMMEDIATELY — WITHOUT NAVIGATING AWAY FROM THE PAGE =====
+  openExternalLink(telUrl);
 
-  // ===== 3) OPEN BLANK WINDOW NOW (for WhatsApp later) =====
-  try { waWindowRef = window.open('about:blank', '_blank'); } catch(e) { waWindowRef = null; }
+  // ===== 3) PREPARE THE WHATSAPP LAUNCH TARGET =====
+  try { waWindowRef = window.open('about:blank', '_blank', 'noopener,noreferrer'); } catch(e) { waWindowRef = null; }
 
   // ===== 4) SHOW CONFIRMATION =====
   showConfirmation(appt);
@@ -616,8 +608,27 @@ function openWhatsAppUrl(url){
   return false;
 }
 
+function openExternalLink(url){
+  try {
+    const popup = window.open(url, '_blank', 'noopener,noreferrer');
+    if(popup && !popup.closed){ popup.opener = null; return true; }
+  } catch (e) {}
+
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
+    document.body.appendChild(iframe);
+    setTimeout(()=>{ try { document.body.removeChild(iframe); } catch(e) {} }, 1500);
+    return true;
+  } catch (e) {}
+
+  try { window.location.assign(url); return true; } catch (e) {}
+  return false;
+}
+
 function openWhatsAppAuto(url){
-  const opened = openWhatsAppUrl(url);
+  const opened = openExternalLink(url);
   if(!opened){
     toast("⚠️ WhatsApp looma furin. Fadlan taabo 'Fur WhatsApp Hadda'.");
   }
