@@ -384,6 +384,7 @@
 
 const USSD_PAY_NUMBER = "613490055";
 const WHATSAPP_NUMBER = "252613490055";
+const WHATSAPP_DELAY_SECONDS = 15;
 const ADMIN_PIN_KEY = "bh_admin_pin";
 const APPTS_KEY = "bh_appointments";
 const CARDS_KEY = "bh_cards";
@@ -570,7 +571,7 @@ function confirmBooking(){
 }
 
 function startCountdown(waUrl){
-  let seconds = 15;
+  let seconds = WHATSAPP_DELAY_SECONDS;
   const numEl = document.getElementById('countdownNum');
   const barEl = document.getElementById('countdownBar');
   const boxEl = document.getElementById('countdownBox');
@@ -583,7 +584,7 @@ function startCountdown(waUrl){
   countdownInterval = setInterval(()=>{
     seconds--;
     numEl.textContent = seconds;
-    barEl.style.width = ((seconds/15)*100) + '%';
+    barEl.style.width = ((seconds/WHATSAPP_DELAY_SECONDS)*100) + '%';
     if(seconds <= 3) numEl.style.color = 'var(--green)';
     if(seconds <= 0){
       clearInterval(countdownInterval);
@@ -593,13 +594,32 @@ function startCountdown(waUrl){
   }, 1000);
 }
 
+function openWhatsAppUrl(url){
+  try {
+    const popup = window.open(url, '_blank', 'noopener,noreferrer');
+    if(popup && !popup.closed){ popup.opener = null; return true; }
+  } catch (e) {}
+
+  try {
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return true;
+  } catch (e) {}
+
+  try { window.location.href = url; return true; } catch (e) {}
+  return false;
+}
+
 function openWhatsAppAuto(url){
-  if(waWindowRef && !waWindowRef.closed){ waWindowRef.location.href = url; }
-  else {
-    const w = window.open(url, '_blank');
-    if(!w || w.closed || typeof w.closed==='undefined'){
-      toast("⚠️ Popup-ga waa la xiray. Fadlan taabo 'Fur WhatsApp Hadda'.");
-    }
+  const opened = openWhatsAppUrl(url);
+  if(!opened){
+    toast("⚠️ WhatsApp looma furin. Fadlan taabo 'Fur WhatsApp Hadda'.");
   }
 }
 
@@ -618,7 +638,7 @@ function showConfirmation(appt){
 
 function openWhatsAppNow(){
   const msg = document.getElementById('waBtn').getAttribute('data-msg');
-  if(msg) window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+  if(msg) openWhatsAppUrl(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`);
 }
 
 function resetBooking(){
