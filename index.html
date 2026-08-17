@@ -936,14 +936,21 @@ function printReceipt(id){
 }
 
 /* ==================== INIT ==================== */
-(async function initApp(){
-  await DB.init();
+// UI-ga si DEGDEG AH ayaa loo tusayaa (DOCTORS waa constant, uma
+// baahna xog la keydiyay), Supabase-na wuxuu ku socdaa background.
+renderDoctorGrid();
+switchMode('patient');
+DB.init().then(()=>{
+  // Seed-ka default-ka ah — waxaan eegnaa TIRADA (length) ee liiska, ma
+  // aha haddii key-gu "jiro" — sababtoo ah DB.init() horeyba ayuu u
+  // dejiyaa key-ga xitaa haddii uu Supabase ka soo qaatay liis madhan.
   if(!localStorage.getItem(ADMIN_PIN_KEY)) save(ADMIN_PIN_KEY, "baxnaano123");
-  if(!localStorage.getItem(APPTS_KEY)) save(APPTS_KEY, []);
-  if(!localStorage.getItem(CARDS_KEY)){ save(CARDS_KEY, [{ cardId:"BH-CARD-0001", name:"Fadumo Cashuur Cumar", phone:"0617675424", degmada:"Wadajir", gender:"Dumar", age:"" }]); }
-  renderDoctorGrid();
-  switchMode('patient');
-})();
+  if(load(CARDS_KEY, []).length === 0){
+    save(CARDS_KEY, [{ cardId:"BH-CARD-0001", name:"Fadumo Cashuur Cumar", phone:"0617675424", degmada:"Wadajir", gender:"Dumar", age:"" }]);
+  }
+  const adminVisible = document.getElementById('view-admin-dashboard').classList.contains('active');
+  if(adminVisible) renderAdminTable();
+});
 </script>
 </body>
 </html>
