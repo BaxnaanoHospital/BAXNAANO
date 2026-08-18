@@ -338,7 +338,7 @@
       <label>PIN-ka Maamulka</label>
       <input type="password" id="adminPinInput" placeholder="Geli PIN-ka" inputmode="numeric" style="text-align:center;font-size:18px;letter-spacing:4px;">
       <button class="btn btn-primary" style="margin-top:16px;" onclick="tryAdminLogin()">Gal (Login)</button>
-      <p class="muted" style="margin-top:12px;text-align:center;">PIN-ka hore u dhigan: <b style="color:var(--navy);">baxnaano123</b></p>
+      <p class="muted" style="margin-top:12px;text-align:center;">PIN-ka hore u dhigan: <b style="color:var(--navy);">sodhawaw</b></p>
     </div>
   </div>
 
@@ -1010,7 +1010,7 @@ function closeScanner(){ document.getElementById('qrModal').classList.remove('ac
 /* ==================== ADMIN ==================== */
 function tryAdminLogin(){
   const val = document.getElementById('adminPinInput').value.trim();
-  const stored = load(ADMIN_PIN_KEY, "baxnaano123");
+  const stored = load(ADMIN_PIN_KEY, "bAXNAANI321");
   if(val === stored){ sessionStorage.setItem('bh_admin_logged','1'); document.getElementById('view-admin-login').classList.remove('active'); document.getElementById('view-admin-dashboard').classList.add('active'); if(!knownBookingIds) initKnownBookingIds(); renderAdminTable(); toast("✅ Admin login guuleystay!"); }
   else { toast("❌ PIN khalad ah. Isku day mar kale."); document.getElementById('adminPinInput').value=''; document.getElementById('adminPinInput').focus(); }
 }
