@@ -831,8 +831,14 @@ let recentlyAddedIds = new Set();
 function initKnownBookingIds(){
   knownBookingIds = new Set(load(APPTS_KEY, []).map(a=>a.id));
 }
+function isAdminSession(){
+  const adminDashboard = document.getElementById('view-admin-dashboard');
+  return sessionStorage.getItem('bh_admin_logged') === '1' &&
+    !!adminDashboard && adminDashboard.classList.contains('active');
+}
 function speakAnnouncement(text){
   try{
+    if(!isAdminSession()) return;
     if(!('speechSynthesis' in window)) return;
     speechSynthesis.cancel(); // ha isku dabaqin fariimo dhowr ah oo isku daba jira
     const utter = new SpeechSynthesisUtterance(text);
@@ -898,8 +904,8 @@ function onRemoteDataChange(key){
     else if(knownBookingIds) knownBookingIds = new Set(appts.map(a=>a.id)); // sii la soco aamusnaan
   }
   if(key === 'bh_announcement'){
-    // Banner-ku hadda waa mid GUUD (ka baxsan view kasta) — sidaas
-    // darteed wuu ku hadlayaa (speak) meel kasta oo qofku joogo.
+    // Banner-ku waa mid guud, laakiin codka waxaa maqli kara admin-ka
+    // keliya.
     renderAnnouncementBanner(true);
   }
   if(adminVisible) renderAdminTable();
@@ -1111,14 +1117,7 @@ function showConfirmation(appt){
   const namesList = appt.patients.map(p=>p.name).join(', ');
   const msg = `Ballanka waa la xaqiijiyay. ${namesList}. Dhakhtarka waa ${appt.doctorName}, qaybta ${appt.department}. Taariikhda waa ${fmtDate(appt.date)}, ${fmtTime(appt.time)}. Mahadsanid.`;
   document.getElementById('confDetails').textContent = `${appt.doctorName} (${appt.department}) — ${fmtDate(appt.date)}, ${fmtTime(appt.time)}`;
-  try{
-    if('speechSynthesis' in window){
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(msg);
-      utter.lang = 'ar-SA'; utter.rate = 0.9;
-      window.speechSynthesis.speak(utter);
-    }
-  }catch(e){ /* speech ma jirto — waa ok, qoraalka ayaa jira */ }
+  speakAnnouncement(msg);
 }
 
 
@@ -1413,7 +1412,7 @@ function tryAdminLogin(){
   if(val === stored){ sessionStorage.setItem('bh_admin_logged','1'); document.getElementById('view-admin-login').classList.remove('active'); document.getElementById('view-admin-dashboard').classList.add('active'); if(!knownBookingIds) initKnownBookingIds(); renderAdminTable(); updateSyncUI(); refreshFromSupabase(); toast("✅ Admin login guuleystay!"); }
   else { toast("❌ PIN khalad ah. Isku day mar kale."); document.getElementById('adminPinInput').value=''; document.getElementById('adminPinInput').focus(); }
 }
-function adminLogout(){ sessionStorage.removeItem('bh_admin_logged'); document.getElementById('adminPinInput').value = ''; switchMode('admin'); toast("👋 Admin waa laga baxay."); }
+function adminLogout(){ sessionStorage.removeItem('bh_admin_logged'); if('speechSynthesis' in window) window.speechSynthesis.cancel(); document.getElementById('adminPinInput').value = ''; switchMode('admin'); toast("👋 Admin waa laga baxay."); }
 function renderAdminTable(){
   const all = load(APPTS_KEY, []); const q = (document.getElementById('searchInput')?.value || '').toLowerCase(); const statusF = document.getElementById('statusFilter')?.value || '';
   const filtered = all.filter(a=>{ const matchesQ = !q || a.patients.some(p=>p.name.toLowerCase().includes(q) || p.phone.includes(q)) || a.id.toLowerCase().includes(q); const matchesS = !statusF || a.status===statusF; return matchesQ && matchesS; });
