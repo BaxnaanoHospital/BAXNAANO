@@ -1211,10 +1211,45 @@ function renderPatients(){
 }
 function addPatientBlock(){ state.patients.push({}); renderPatients(); setTimeout(()=>{ const blocks = document.querySelectorAll('.patient-block'); if(blocks.length) blocks[blocks.length-1].scrollIntoView({behavior:'smooth',block:'center'}); },50); }
 function removePatientBlock(idx){ state.patients.splice(idx,1); renderPatients(); }
+function normalizePatientName(name){
+  const commonSpellings = {
+    CIISE:'ISSE', CISE:'ISSE',
+    YUUSUF:'YUSUF', IBRAAHIM:'IBRAHIM', ISMAACIIL:'ISMAEL', MUSA:'MUSA', MUUSE:'MUSA',
+    NUUR:'NOOR', NUURADIIN:'NOORADIN', ABDIRAHMAN:'ABDURRAHMAN', CABDIRAXMAAN:'ABDURAHMAN',
+    CABDULLAAHI:'ABDULLAH', CABDALLAAH:'ABDALLAH', CABDIQAADIR:'ABDULQADIR',
+    CABDIKARIIM:'ABDULKARIM', CABDICASIIS:'ABDULAZIZ', CABDINAASIR:'ABDULNASIR',
+    CABDISAMAD:'ABDUSSAMAD', CABDIWALI:'ABDULWALI', CABDIFATAAX:'ABDULFATTAH',
+    CABDIRASHIID:'ABDURRASHID', CABDIJABAAR:'ABDULJABBAR', CABDIHAAQ:'ABDULHAQ',
+    CABDIHAMIID:'ABDULHAMID', CABDULQAADIR:'ABDULQADIR', DAAUUD:'DAUD', DAAWUD:'DAWOOD',
+    SULEYMAAN:'SULEIMAN', SULAIMAAN:'SULAIMAN', BASHIIR:'BASHIR', BASHIR:'BASHIR',
+    FARAX:'FARAH', FARAAJ:'FARAJ', AAMIN:'AMIN', AAMIIN:'AMIN', JAMAAL:'JAMAL',
+    JABRIIL:'JIBRIL', JIBRIIL:'JIBRIL', KHALIIF:'KHALIF', KHALIIL:'KHALIL', MAHAD:'MAHAD',
+    MAALIN:'MALIN', MOHAMUUD:'MAHMOUD', MAXMUUD:'MAHMOUD', MUKHTAAR:'MUKHTAR',
+    MUSTAFA:'MUSTAFA', NABIIL:'NABIL', RASHIID:'RASHID', SAALAX:'SALAH', SALAX:'SALAH',
+    SAMATAR:'SAMATAR', SHARIIF:'SHARIF', TAALIB:'TALIB', XAMZA:'HAMZA', XAMZAH:'HAMZAH',
+    XAAJI:'HAJI', YAXYE:'YAHYA', ZAKARIYA:'ZAKARIA', ZAKARIYYA:'ZAKARIYA',
+    XALIIMO:'HALIMO', XAWA:'HAWA', XAWO:'HAWA', HODAN:'HODAN', HODDO:'HODAN',
+    FATIMA:'FATIMA', FAADUMO:'FADUMO', FADUMO:'FADUMO', MARYAN:'MARYAM', MARYAM:'MARYAM',
+    KHADIJA:'KHADIJA', KHAADIJA:'KHADIJA', AAMINA:'AMINA', AMINA:'AMINA', AYAN:'AYAN',
+    AYAAN:'AYAN', ASMA:'ASMA', ASMAA:'ASMA', SAHRA:'SAHRA', SAHRO:'SAHRA', SHUKRI:'SHUKRI',
+    SHUKRIYA:'SHUKRIYA', HANI:'HANI', HANIYA:'HANIYA', SUMAYA:'SUMAYA', SUMAYO:'SUMAYA',
+    ILWAAD:'ILWAD', ILWAADAN:'ILWAD', DEEQA:'DEEQA', DEEQO:'DEEQA', RAHMA:'RAHMA',
+    RAHMO:'RAHMA', NADIIFA:'NADIFA', NADIIFAH:'NADIFA', SAFIYA:'SAFIYA', SAFIYO:'SAFIYA',
+    HAFSA:'HAFSA', HAFSO:'HAFSA', ZAHRA:'ZAHRA', ZAHRO:'ZAHRA', IKRAAN:'IKRAM', IKRAM:'IKRAM',
+    UBAX:'UBAX', UBAXO:'UBAX', ROODA:'RODA', ROODO:'RODA', NIMCO:'NIMCO', NIMCOO:'NIMCO',
+    KHADIRO:'KHADRA', KHADRA:'KHADRA', SAADO:'SAADO', SAADA:'SAADA', HALIMO:'HALIMO',
+    HANIIFA:'HANIFA', HANIFA:'HANIFA', MUNA:'MONA', MUNO:'MONA', LUUL:'LUL', LUULO:'LUL',
+    FATUMO:'FATIMA', FARTUUN:'FARTUN', FARTUUNO:'FARTUN', BILQEYSA:'BILQIS', BILQIS:'BILQIS',
+    CABDI:'ABDI', MAXAMED:'MOHAMED', MAXAMUUD:'MAHMOUD', XUSEEN:'HUSSEIN', XUSSEIN:'HUSSEIN',
+    CUMAR:'OMAR', CISMAAN:'OSMAN', CALI:'ALI', XASAN:'HASSAN', SHEEKH:'SHEIKH',
+    MUXAMED:'MOHAMED', MUXAMUUD:'MAHMOUD'
+  };
+  return name.trim().toUpperCase().replace(/[A-Z]+/g, word => commonSpellings[word] || word);
+}
 function collectPatientsFromDOM(){
   const blocks = document.querySelectorAll('.patient-block');
   const list = [];
-  blocks.forEach((b,i)=>{ list.push({ name: b.querySelector('.p-name').value.trim().toUpperCase(), phone: b.querySelector('.p-phone').value.trim(), age: b.querySelector('.p-age').value.trim(), gender: b.querySelector('.p-gender').value, degmada: b.querySelector('.p-degmada').value.trim(), returning: (state.patients[i]&&state.patients[i].returning)||'' }); });
+  blocks.forEach((b,i)=>{ const name = normalizePatientName(b.querySelector('.p-name').value); b.querySelector('.p-name').value = name; list.push({ name, phone: b.querySelector('.p-phone').value.trim(), age: b.querySelector('.p-age').value.trim(), gender: b.querySelector('.p-gender').value, degmada: b.querySelector('.p-degmada').value.trim(), returning: (state.patients[i]&&state.patients[i].returning)||'' }); });
   return list;
 }
 function validateStep2(silent){
