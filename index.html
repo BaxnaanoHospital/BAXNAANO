@@ -108,6 +108,10 @@
     border:2px solid var(--gray-100);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
     background:#fff;position:relative;overflow:hidden;
   }
+  .doc-card.locked{cursor:not-allowed;border-color:#dbe4ef;background:linear-gradient(145deg,#fff 0%,#f7faff 100%);}
+  .doc-card.locked::after{content:'';position:absolute;inset:0;background:rgba(226,234,244,.18);pointer-events:none;}
+  .doc-lock-badge{position:absolute;top:10px;left:10px;z-index:2;width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(10,37,64,.9);color:#fff;font-size:14px;box-shadow:0 4px 10px rgba(10,37,64,.18);}
+  .doc-card.locked .doc-avatar-wrap{border-color:#cbd8e6;}
   .doc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--sky));opacity:0;transition:opacity 0.3s;}
   .doc-card:active{transform:scale(0.97);}
   .doc-card.selected{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 8px 24px rgba(0,102,255,0.12);}
@@ -234,6 +238,20 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+  .doctor-lock{max-width:560px;margin:24px auto 16px;text-align:center;padding:28px 24px 24px;background:linear-gradient(145deg,#fff 0%,#f3f8ff 100%);border:1px solid #dbeafe;box-shadow:var(--shadow-lg);position:relative;overflow:hidden;}
+  .doctor-lock::before{content:'';position:absolute;inset:0 0 auto;height:5px;background:linear-gradient(90deg,#0a2540,#0066ff,#00a8e8);}
+  .lock-icon{width:58px;height:58px;margin:0 auto 18px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:#e6f0ff;color:var(--navy);font-size:28px;box-shadow:0 8px 20px rgba(0,102,255,.14);}
+  .doctor-lock h2{font-size:24px;color:var(--navy);margin-bottom:10px;}
+  .doctor-lock .reason{max-width:420px;margin:0 auto 18px;color:var(--gray-600);font-size:14px;}
+  .reopen-note{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:#fff;border:1px solid var(--gray-200);color:var(--navy);font-weight:800;font-size:13px;}
+  .countdown-label{margin:22px 0 5px;color:var(--gray-500);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;}
+  .lock-countdown{font-size:30px;line-height:1;font-weight:900;letter-spacing:1px;color:var(--blue);font-variant-numeric:tabular-nums;}
+  .lock-status{margin:18px 0 0;color:var(--gray-400);font-size:12px;}
+  .doctor-access-card{border:1px solid #dbeafe;background:linear-gradient(135deg,#f8fbff,#fff);}
+  .doctor-access-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .access-state{font-weight:900;color:var(--danger);}
+  @media(max-width:480px){.doctor-lock{margin-top:24px;padding:30px 18px 24px;}.doctor-lock h2{font-size:21px;}.lock-countdown{font-size:26px;}}
+
   #printArea{display:none;}
   @media print{body *{visibility:hidden;}#printArea,#printArea *{visibility:visible;}#printArea{display:block;position:fixed;top:0;left:0;width:100%;padding:24px;}}
 
@@ -250,10 +268,10 @@
       <div class="sub">Online Booking & USSD Payment</div>
     </div>
   </div>
-  <Riv class="nav-toggle">
+  <div class="nav-toggle">
     <button id="navPatientBtn" class="active" onclick="switchMode('patient')">Bukaan</button>
     <button id="navAdminBtn" onclick="switchMode('admin')"> </button>
-  </Riv>
+  </div>
   <span id="syncBadge" onclick="DB.runDiagnostic()" style="cursor:pointer;font-size:18px;margin-left:10px;line-height:1;" title="Sync lama bilaabin">⏳</span>
   <button id="installBtn" onclick="triggerInstall()" style="display:none;margin-left:10px;padding:7px 12px;border-radius:999px;border:none;background:rgba(255,255,255,0.15);color:#fff;font-size:12px;font-weight:800;align-items:center;gap:5px;white-space:nowrap;">⬇️ Install</button>
 </header>
@@ -268,6 +286,15 @@
 
   <!-- PATIENT: BOOKING WIZARD -->
   <div id="view-booking" class="view active">
+    <div id="doctorLockScreen" class="doctor-lock card" style="display:none;">
+      <div class="lock-icon" aria-hidden="true">🔒</div>
+      <h2>Doctor Access Locked</h2>
+      <p class="reason">Gelitaanka dhakhaatiirta si toos ah ayaa loo xirayaa marka waqtiga shaqadu dhammaado.</p>
+      <div class="reopen-note">⏰ Gelitaanka dhakhaatiirta wuxuu si toos ah u furmayaa 5:00 AM subaxnimo.</div>
+      <div class="countdown-label">Time until reopening</div>
+      <div id="doctorLockCountdown" class="lock-countdown">00:00:00</div>
+      <p class="lock-status">The page checks the actual current time continuously.</p>
+    </div>
     <div class="stepper" id="stepper">
       <div class="step active" data-step="1"><div class="dot">1</div><div class="lbl">Dhakhtar</div></div>
       <div class="step" data-step="2"><div class="dot">2</div><div class="lbl">Xogta</div></div>
@@ -346,6 +373,14 @@
 
   <!-- ADMIN: DASHBOARD -->
   <div id="view-admin-dashboard" class="view">
+    <div class="card doctor-access-card">
+      <div class="section-title"><span class="icon">👨‍⚕️</span><h3>Doctor Access</h3></div>
+      <div class="doctor-access-row">
+        <div id="doctorAccessStatus" class="access-state">Locked</div>
+        <button id="doctorAccessToggle" class="btn btn-outline btn-sm" onclick="toggleDoctorAccess()">🔓 Unlock Doctor Access</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0;">Scheduled lock: 6:30 PM–5:00 AM. Admin access is never affected.</p>
+    </div>
     <div id="adminSyncWarning" style="display:none;background:#fee2e2;border:2px solid #dc2626;border-radius:12px;padding:14px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:24px;">⚠️</span>
@@ -468,6 +503,8 @@ const ADMIN_PIN_KEY = "bh_admin_pin";
 const APPTS_KEY = "bh_appointments";
 const CARDS_KEY = "bh_cards";
 const ANNOUNCE_KEY = "bh_announcement";
+const DOCTOR_ACCESS_KEY = "bh_doctor_access";
+const DOCTOR_ACCESS_STATUS_KEY = "bh_doctor_access_status";
 
 const DOC_AVATARS = {
   yahye:  `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e0f2fe"/><stop offset="100%" stop-color="#bae6fd"/></linearGradient></defs><rect width="100" height="100" fill="url(#g1)"/><circle cx="50" cy="38" r="18" fill="#0ea5e9"/><path d="M20 88 Q50 55 80 88" fill="#0ea5e9"/></svg>`,
@@ -484,9 +521,12 @@ const DOCTORS = {
 };
 
 let state = { doctorKey: null, patients: [], date: "", time: "", queueNumber: null, familyCardVerified: false };
+let currentStep = 1;
 let currentApptId = null;
 let waWindowRef = null;
 let countdownInterval = null;
+let doctorAccessInterval = null;
+let lastDoctorAccessState = null;
 
 function uid(prefix){ return prefix + "-" + Math.random().toString(36).slice(2,7).toUpperCase(); }
 function load(key, fallback){ try{ const v = JSON.parse(localStorage.getItem(key)); return (v===null||v===undefined) ? fallback : v; }catch(e){ return fallback; } }
@@ -532,6 +572,93 @@ function toast(msg){
 function fmtDate(d){ if(!d) return ""; const dt = new Date(d+"T00:00:00"); return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
 function fmtTime(t){ if(!t) return ""; const [h,m] = t.split(':'); const hour = parseInt(h,10); const ampm = hour >= 12 ? 'PM' : 'AM'; const hr12 = hour % 12 || 12; return `${hr12}:${m} ${ampm}`; }
 function escapeHtml(text){ const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+function isDoctorScheduleLocked(now=new Date()){
+  const minutes = now.getHours()*60 + now.getMinutes();
+  return minutes >= 18*60+30 || minutes < 5*60;
+}
+function getDoctorAccessOverride(now=new Date()){
+  const override = load(DOCTOR_ACCESS_KEY, {mode:'schedule'});
+  if(override.unlocked === true) return {mode:'unlocked'};
+  if(override.mode === 'locked' && override.expiresAt && new Date(override.expiresAt) > now) return override;
+  if(override.mode === 'locked' && override.expiresAt && new Date(override.expiresAt) <= now){
+    localStorage.removeItem(DOCTOR_ACCESS_KEY);
+    return {mode:'schedule'};
+  }
+  if(override.mode === 'unlocked') return override;
+  return {mode:'schedule'};
+}
+function isDoctorAccessUnlocked(now=new Date()){ return getDoctorAccessOverride(now).mode === 'unlocked'; }
+function doctorAccessIsLocked(now=new Date()){
+  const override = getDoctorAccessOverride(now);
+  return override.mode === 'locked' || (isDoctorScheduleLocked(now) && !isDoctorAccessUnlocked(now));
+}
+function notifyDoctorAccess(message, title){
+  toast(message);
+  if('Notification' in window && Notification.permission === 'granted') new Notification(title, {body:message, icon:'icon-192.png'});
+}
+function requestDoctorNotifications(){
+  if('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(()=>{});
+}
+function getReopenTime(now=new Date()){
+  const reopen = new Date(now);
+  if(now.getHours() >= 5) reopen.setDate(reopen.getDate()+1);
+  reopen.setHours(5,0,0,0);
+  return reopen;
+}
+function updateDoctorAccessUI(announce=true){
+  const now = new Date();
+  const manualOverride = isDoctorAccessUnlocked();
+  const locked = doctorAccessIsLocked(now);
+  const lockScreen = document.getElementById('doctorLockScreen');
+  const stepper = document.getElementById('stepper');
+  if(lockScreen){
+    lockScreen.style.display = locked ? 'block' : 'none';
+    if(locked){
+      const totalSeconds = Math.max(0, Math.ceil((getReopenTime(now)-now)/1000));
+      const hours = String(Math.floor(totalSeconds/3600)).padStart(2,'0');
+      const minutes = String(Math.floor((totalSeconds%3600)/60)).padStart(2,'0');
+      const seconds = String(totalSeconds%60).padStart(2,'0');
+      document.getElementById('doctorLockCountdown').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+  }
+  if(stepper) stepper.style.display = locked ? 'none' : 'flex';
+  document.querySelectorAll('#view-booking .wstep').forEach(el=>{
+    const stepNumber = Number(el.id.replace('wstep-',''));
+    el.style.display = locked ? (stepNumber===1 ? 'block' : 'none') : (stepNumber===currentStep ? 'block' : 'none');
+  });
+  const status = document.getElementById('doctorAccessStatus');
+  const toggle = document.getElementById('doctorAccessToggle');
+  if(status){ status.textContent = locked ? 'Locked' : 'Unlocked'; status.style.color = locked ? 'var(--danger)' : 'var(--green)'; }
+  if(toggle){ toggle.textContent = locked ? '🔓 Unlock Doctor Access' : '🔒 Lock Doctor Access'; toggle.className = locked ? 'btn btn-outline btn-sm' : 'btn btn-danger btn-sm'; }
+  const currentState = locked ? 'locked' : 'unlocked';
+  if(currentState !== lastDoctorAccessState) renderDoctorGrid();
+  if(announce && lastDoctorAccessState && currentState !== lastDoctorAccessState){
+    notifyDoctorAccess(currentState==='locked' ? 'Doctor access is now locked until 5:00 AM.' : 'Doctor access has automatically reopened.', currentState==='locked' ? 'Doctor Access Locked' : 'Doctor Access Reopened');
+  }
+  lastDoctorAccessState = currentState;
+  localStorage.setItem(DOCTOR_ACCESS_STATUS_KEY, currentState);
+  return {locked, manualOverride};
+}
+function toggleDoctorAccess(){
+  const currentlyLocked = doctorAccessIsLocked();
+  if(!currentlyLocked){
+    const now = new Date();
+    save(DOCTOR_ACCESS_KEY, {mode:'locked', lockedAt:now.toISOString(), expiresAt:getReopenTime(now).toISOString()});
+    requestDoctorNotifications();
+    notifyDoctorAccess('Gelitaanka dhakhaatiirta wuxuu furmayaa 5:00 subaxnimo..', 'Doctor Access Locked');
+  }else{
+    save(DOCTOR_ACCESS_KEY, {mode:'unlocked', updatedAt:new Date().toISOString()});
+    requestDoctorNotifications();
+    notifyDoctorAccess('Gelitaanka dhakhaatiirta wuxuu furmayaa 5:00 subaxnimo..', 'Doctor Access Unlocked');
+  }
+  updateDoctorAccessUI(false);
+}
+function startDoctorAccessClock(){
+  clearInterval(doctorAccessInterval);
+  updateDoctorAccessUI(false);
+  doctorAccessInterval = setInterval(()=>updateDoctorAccessUI(true), 1000);
+}
 
 /* ================================================================
    SUPABASE MULTI-DEVICE SYNC — isla project-ka HMS-ka guud, laakiin
@@ -851,6 +978,7 @@ function initKnownBookingIds(){
 }
 function speakAnnouncement(text){
   try{
+    if(sessionStorage.getItem('bh_admin_logged') !== '1' || !document.getElementById('view-admin-dashboard').classList.contains('active')) return;
     if(!('speechSynthesis' in window)) return;
     speechSynthesis.cancel(); // ha isku dabaqin fariimo dhowr ah oo isku daba jira
     const utter = new SpeechSynthesisUtterance(text);
@@ -936,12 +1064,13 @@ function switchMode(mode){
   document.getElementById('view-admin-login').classList.remove('active');
   document.getElementById('view-admin-dashboard').classList.remove('active');
   if(mode==='patient'){
+    if(doctorAccessIsLocked()) updateDoctorAccessUI(false);
     document.getElementById('view-booking').classList.add('active');
   } else {
     const loggedIn = sessionStorage.getItem('bh_admin_logged') === '1';
     document.getElementById('view-admin-login').classList.toggle('active', !loggedIn);
     document.getElementById('view-admin-dashboard').classList.toggle('active', loggedIn);
-    if(loggedIn){ if(!knownBookingIds) initKnownBookingIds(); renderAdminTable(); updateSyncUI(); refreshFromSupabase(); }
+    if(loggedIn){ if(!knownBookingIds) initKnownBookingIds(); renderAdminTable(); updateSyncUI(); updateDoctorAccessUI(false); refreshFromSupabase(); }
   }
 }
 
@@ -949,16 +1078,18 @@ function switchMode(mode){
 function renderDoctorGrid(){
   const grid = document.getElementById('doctorGrid');
   grid.innerHTML = '';
+  const locked = doctorAccessIsLocked();
   Object.entries(DOCTORS).forEach(([key,doc])=>{
     const el = document.createElement('div');
-    el.className = 'doc-card' + (state.doctorKey===key ? ' selected':'');
+    el.className = 'doc-card' + (state.doctorKey===key ? ' selected':'') + (locked ? ' locked':'');
     el.onclick = ()=>selectDoctor(key);
     const avatarInner = doc.photo ? `<img src="${doc.photo}" alt="${doc.name}">` : doc.avatar;
-    el.innerHTML = `<div class="check">✓</div><div class="doc-avatar-wrap">${avatarInner}</div><div class="name">${doc.name}</div><div class="dept">${doc.dept}</div><div class="fee">$${doc.fee} <small>/booking</small></div>`;
+    el.innerHTML = `${locked ? '<div class="doc-lock-badge" aria-label="Doctor access locked">🔒</div>' : ''}<div class="check">✓</div><div class="doc-avatar-wrap">${avatarInner}</div><div class="name">${doc.name}</div><div class="dept">${doc.dept}</div><div class="fee">$${doc.fee} <small>/booking</small></div>`;
     grid.appendChild(el);
   });
 }
 function selectDoctor(key){
+  if(doctorAccessIsLocked()){ updateDoctorAccessUI(false); notifyDoctorAccess('Doctor access is currently locked until 5:00 AM.', 'Doctor Access Locked'); return; }
   state.doctorKey = key; state.patients = [];
   renderDoctorGrid();
   document.getElementById('toStep2Btn').disabled = false;
@@ -1120,6 +1251,11 @@ async function fastPushBooking(appt){
 }
 
 async function confirmBooking(){
+  if(doctorAccessIsLocked()){
+    updateDoctorAccessUI(false);
+    notifyDoctorAccess('Doctor access is currently locked until 5:00 AM.', 'Doctor Access Locked');
+    return;
+  }
   const fee = calcFee();
   // MUHIIM: xaqiijin ugu dambeysa oo DEGDEG ah — mar kale hubi lambarka
   // safka/waqtiga iyadoo la isticmaalayo xogta UGU CUSUB ee Supabase (ma
@@ -1198,17 +1334,7 @@ async function confirmBooking(){
 function showConfirmation(appt){
   document.getElementById('view-booking').classList.remove('active');
   document.getElementById('view-confirmation').classList.add('active');
-  const namesList = appt.patients.map(p=>p.name).join(', ');
-  const msg = `Ballanka waa la xaqiijiyay. ${namesList}. Dhakhtarka waa ${appt.doctorName}, qaybta ${appt.department}. Taariikhda waa ${fmtDate(appt.date)}, ${fmtTime(appt.time)}. Mahadsanid.`;
-  document.getElementById('confDetails').textContent = `${appt.doctorName} (${appt.department}) — ${fmtDate(appt.date)}, ${fmtTime(appt.time)}`;
-  try{
-    if('speechSynthesis' in window){
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(msg);
-      utter.lang = 'ar-SA'; utter.rate = 0.9;
-      window.speechSynthesis.speak(utter);
-    }
-  }catch(e){ /* speech ma jirto — waa ok, qoraalka ayaa jira */ }
+  document.getElementById('confDetails').textContent = `Thank you. ${appt.doctorName} (${appt.department}) — ${fmtDate(appt.date)}, ${fmtTime(appt.time)}`;
 }
 
 
@@ -1224,6 +1350,7 @@ function resetBooking(){
 
 /* ==================== STEPS ==================== */
 function goStep(n){
+  currentStep = n;
   document.querySelectorAll('.wstep').forEach(el=>el.style.display='none');
   document.getElementById('wstep-'+n).style.display='block';
   document.querySelectorAll('.step').forEach(el=>{ const s = parseInt(el.dataset.step); el.classList.toggle('active', s===n); el.classList.toggle('done', s<n); });
@@ -1631,6 +1758,7 @@ function triggerInstall(){
 // baahna xog la keydiyay), Supabase-na wuxuu ku socdaa background.
 renderDoctorGrid();
 switchMode('patient');
+startDoctorAccessClock();
 renderAnnouncementBanner(false); // fariin haddii ay horey u jirtay — ha ku hadlin marka la furo
 DB.init().then(()=>{
   // Seed-ka default-ka ah — waxaan eegnaa TIRADA (length) ee liiska, ma
