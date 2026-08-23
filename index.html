@@ -489,6 +489,7 @@ const WHATSAPP_NUMBER = "252613490055";
 const ADMIN_PIN_KEY = "bh_admin_pin";
 const APPTS_KEY = "bh_appointments";
 const APPTS_BACKUP_KEY = "bh_appointments_backup";
+const DELETED_APPTS_KEY = "bh_deleted_appointments";
 const CARDS_KEY = "bh_cards";
 const ANNOUNCE_KEY = "bh_announcement";
 
@@ -538,6 +539,8 @@ function load(key, fallback){
 function safeApplyPull(key, records){
   const existing = load(key, null);
   if(key === APPTS_KEY && !Array.isArray(records)) return;
+  const deletedIds = key === APPTS_KEY ? new Set(load(DELETED_APPTS_KEY, [])) : new Set();
+  if(key === APPTS_KEY) records = records.filter(record => !deletedIds.has(record.id));
   if(!Array.isArray(existing) || !Array.isArray(records)){
     localStorage.setItem(key, JSON.stringify(records));
     if(key === APPTS_KEY) localStorage.setItem(APPTS_BACKUP_KEY, JSON.stringify(records));
@@ -558,6 +561,7 @@ function safeApplyPull(key, records){
   });
   existing.forEach(record => {
     const id = identity(record);
+    if(id && deletedIds.has(id)) return;
     if(!id || !incomingIds.has(id)) merged.push(record);
   });
   localStorage.setItem(key, JSON.stringify(merged));
@@ -1727,7 +1731,8 @@ function closeApptDetail(){ document.getElementById('apptDetailModal').classList
 function updateStatus(id, status){ const all = load(APPTS_KEY, []); const a = all.find(x=>x.id===id); if(a){ a.status = status; if(status==='Paid' && !a.paidAt) a.paidAt = new Date().toISOString(); save(APPTS_KEY, all); } renderAdminTable(); toast("✅ Xaaladda waa la cusboonaysiiyay."); }
 function deleteBooking(id){
   const all = load(APPTS_KEY, []); const a = all.find(x=>x.id===id); if(!a) return;
-  const name = a.patients[0] ? a.patients[0].name : id;
+  const patients = getAppointmentPatients(a);
+  const name = patients[0] ? patients[0].name : id;
   Swal.fire({
     icon: 'warning', title: 'Tirtir Ballanka?',
     text: `Ma hubtaa inaad tirtirto ballanka "${name}"? Tallaabadan lama celin karo.`,
@@ -1736,18 +1741,31 @@ function deleteBooking(id){
   }).then((result)=>{
     if(result && result.isConfirmed){
       const filtered = all.filter(x=>x.id!==id);
+      pendingAppointmentWrites.delete(id);
+      const deletedIds = new Set(load(DELETED_APPTS_KEY, []));
+      deletedIds.add(id);
+      localStorage.setItem(DELETED_APPTS_KEY, JSON.stringify([...deletedIds]));
       save(APPTS_KEY, filtered);
-      // ILAALIN JOOGTO AH: ku dar ID-gan "tombstone" server-side ah — sidaas
-      // darteed xitaa haddii qalab qadiimi ah (fayl JS oo aan la
-      // cusboonaysiin) uu isku dayo inuu dib u soo celiyo (push) diiwaankan
-      // mustaqbalka, Postgres qudhiisu wuu diidayaa (trigger), iyada oo aan
-      // loo baahnayn in qalabka la isku halleeyo.
-      if(DB.enabled && DB.client){
-        DB.client.from('deleted_bookings_tombstone').upsert({ id }, {onConflict:'id'}).then(()=>{}).catch(err=>console.warn('Tombstone write failed', err));
-      }
       closeApptDetail();
       renderAdminTable();
-      toast('✅ Ballanka waa la tirtiray.');
+      toast('✅ Ballanka iyo xogta bukaanka waa laga saaray nidaamka.');
+      if(DB.enabled && DB.client){
+        (async ()=>{
+          try{
+            const {error: tombstoneError} = await DB.client.from('deleted_bookings_tombstone').upsert({ id }, {onConflict:'id'});
+            if(tombstoneError) throw tombstoneError;
+            const {error: patientError} = await DB.client.from('online_booking_patients').delete().eq('booking_id', id);
+            if(patientError) throw patientError;
+            const {error: bookingError} = await DB.client.from('online_bookings').delete().eq('id', id);
+            if(bookingError) throw bookingError;
+            toast('✅ Xogta bukaanka si degdeg ah ayaa loo tirtiray.');
+          }catch(error){
+            DB.status='error'; DB.lastError=error.message||String(error); updateSyncUI();
+            toast('⚠️ Xogta deegaanka waa laga saaray, laakiin tirtirka server-ka wuu fashilmay.');
+            console.warn('Manual booking deletion failed', error);
+          }
+        })();
+      }
     }
   });
 }
