@@ -11,8 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Baxnaano">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -128,6 +127,7 @@
   .doc-card .fee{font-size:18px;font-weight:900;color:var(--blue);}
   .doc-card .fee small{font-size:11px;font-weight:600;color:var(--gray-400);}
   .doc-card .tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;margin-top:6px;background:var(--green-soft);color:var(--green);}
+  .p-name{text-transform:uppercase;}
 
   label{display:block;font-size:12.5px;font-weight:700;color:var(--navy);margin:14px 0 5px;}
   input[type=text],input[type=tel],input[type=number],input[type=date],input[type=time],input[type=password],select{
@@ -1187,7 +1187,7 @@ function selectDoctor(key){
 const DEGMO_LIST = ["Hodan","Howlwadaag","Wadajir","Warta Nabadda","Waaberi","Shangaani","Xamar Weyne","Xamar Jajab","Boondheere","Cabdicasiis","Shibis","Kaaraan","Yaaqshiid","Heliwaa","Dayniile","Dharkenley","Kaxda","Karaan","Gubadley","Garasbaaley"];
 function patientTemplate(idx, data={}){
   const rv = data.returning; // '' = wali lama dooran, 'yes'/'no'
-  return `<div class="patient-block" data-idx="${idx}">${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Remove">✕</button>` : ''}<label>Magaca oo dhamaystiran ${idx>0?'(Xubinta '+(idx+1)+')':''}</label><input type="text" class="p-name" placeholder="Tusaale: Cali Xasan Mohamed" value="${escapeHtml(data.name||'')}"><div class="row2"><div><label>Lambarka Telefoonka</label><input type="tel" class="p-phone" placeholder="06XXXXXXXX" value="${escapeHtml(data.phone||'')}" inputmode="tel"></div><div><label>Da'da (Age)</label><input type="number" min="0" max="120" class="p-age" placeholder="Tusaale: 28" value="${escapeHtml(data.age||'')}" inputmode="numeric"></div></div><div class="row2"><div><label>Gender</label><select class="p-gender"><option value="Lab" ${data.gender==='Lab'?'selected':''}>Lab (Male)</option><option value="Dumar" ${data.gender==='Dumar'?'selected':''}>Dumar (Female)</option></select></div><div><label>Degmada</label><select class="p-degmada"><option value="">-- Dooro Degmada --</option>${DEGMO_LIST.map(d=>`<option value="${d}" ${data.degmada===d?'selected':''}>${d}</option>`).join('')}</select></div></div><label>HORAY MA UYIMADAY QAFKA NUMBER-KA LORABO?</label><div class="btn-row" style="gap:8px;"><button type="button" class="btn ${rv==='yes'?'btn-success':'btn-outline'} btn-sm returning-toggle" data-val="yes" style="flex:1;" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="btn ${rv==='no'?'btn-success':'btn-outline'} btn-sm returning-toggle" data-val="no" style="flex:1;" onclick="setReturning(${idx},'no',this)">➕ Maya</button></div></div>`;
+  return `<div class="patient-block" data-idx="${idx}">${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Remove">✕</button>` : ''}<label>Magaca oo dhamaystiran ${idx>0?'(Xubinta '+(idx+1)+')':''}</label><input type="text" class="p-name" placeholder="Tusaale: Cali Xasan Mohamed" value="${escapeHtml(data.name||'')}" oninput="this.value=this.value.toUpperCase()"><div class="row2"><div><label>Lambarka Telefoonka</label><input type="tel" class="p-phone" placeholder="06XXXXXXXX" value="${escapeHtml(data.phone||'')}" inputmode="tel"></div><div><label>Da'da (Age)</label><input type="number" min="0" max="120" class="p-age" placeholder="Tusaale: 28" value="${escapeHtml(data.age||'')}" inputmode="numeric"></div></div><div class="row2"><div><label>Gender</label><select class="p-gender"><option value="Lab" ${data.gender==='Lab'?'selected':''}>Lab (Male)</option><option value="Dumar" ${data.gender==='Dumar'?'selected':''}>Dumar (Female)</option></select></div><div><label>Degmada</label><select class="p-degmada"><option value="">-- Dooro Degmada --</option>${DEGMO_LIST.map(d=>`<option value="${d}" ${data.degmada===d?'selected':''}>${d}</option>`).join('')}</select></div></div><label>HORAY MA UYIMADAY QAFKA NUMBER-KA LORABO?</label><div class="btn-row" style="gap:8px;"><button type="button" class="btn ${rv==='yes'?'btn-success':'btn-outline'} btn-sm returning-toggle" data-val="yes" style="flex:1;" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="btn ${rv==='no'?'btn-success':'btn-outline'} btn-sm returning-toggle" data-val="no" style="flex:1;" onclick="setReturning(${idx},'no',this)">➕ Maya</button></div></div>`;
 }
 function setReturning(idx, val, btnEl){
   if(state.patients[idx]) state.patients[idx].returning = val;
@@ -1214,7 +1214,7 @@ function removePatientBlock(idx){ state.patients.splice(idx,1); renderPatients()
 function collectPatientsFromDOM(){
   const blocks = document.querySelectorAll('.patient-block');
   const list = [];
-  blocks.forEach((b,i)=>{ list.push({ name: b.querySelector('.p-name').value.trim(), phone: b.querySelector('.p-phone').value.trim(), age: b.querySelector('.p-age').value.trim(), gender: b.querySelector('.p-gender').value, degmada: b.querySelector('.p-degmada').value.trim(), returning: (state.patients[i]&&state.patients[i].returning)||'' }); });
+  blocks.forEach((b,i)=>{ list.push({ name: b.querySelector('.p-name').value.trim().toUpperCase(), phone: b.querySelector('.p-phone').value.trim(), age: b.querySelector('.p-age').value.trim(), gender: b.querySelector('.p-gender').value, degmada: b.querySelector('.p-degmada').value.trim(), returning: (state.patients[i]&&state.patients[i].returning)||'' }); });
   return list;
 }
 function validateStep2(silent){
@@ -1514,7 +1514,7 @@ function handleScannedValue(value, patientSignature){
   const v = (value||'').trim();
   const isOfficialCard = v && OFFICIAL_CARD_QR_VALUES.some(u => v === u || v.includes(u));
   const cardRefs = load(CARD_REFS_KEY, []);
-  const matchedRef = v ? cardRefs.find(r => r.qrValue === v) : null; // sawirro admin-ku galiyay
+  const matchedRef = v ? cardRefs.find(r => r.qrValue && r.qrValue.trim() === v) : null; // sawirro admin-ku galiyay
   const registeredCard = v ? load(CARDS_KEY, []).find(c=>c.cardId===v) : null; // (legacy) admin-generated cards
   let adminApprovedCard = false, colorMismatch = false;
   if(matchedRef){
@@ -1536,7 +1536,7 @@ function handleScannedValue(value, patientSignature){
   // iyadoo la eegayo KALIYA midabka iyo qaabka (sawirrada QR-lays ah ee
   // admin-ku galiyay).
   if(!adminApprovedCard && !isOfficialCard && !registeredCard && patientSignature){
-    const visualMatch = cardRefs.find(r => r.avgColor &&
+    const visualMatch = cardRefs.find(r => r.avgColor && r.aspectRatio &&
       colorDistance(patientSignature.avgColor, r.avgColor) <= COLOR_TOLERANCE &&
       Math.abs((patientSignature.aspectRatio||1) - (r.aspectRatio||1)) <= ASPECT_TOLERANCE);
     if(visualMatch) adminApprovedCard = true;
@@ -1659,7 +1659,7 @@ function saveCardRef(){
   if(!_cardRefPhotoBase64 || !_cardRefSignature){ toast("⚠️ Fadlan soo geli sawir cad."); return; }
   const refs = load(CARD_REFS_KEY, []);
   if(_cardRefQrValue && refs.some(r=>r.qrValue === _cardRefQrValue)){ toast("⚠️ Kaadhkan (QR-kiisa) horeyba waa la galiyay."); return; }
-  const ref = { id: uid("CARDREF"), createdAt: new Date().toISOString(), photo: _cardRefPhotoBase64, qrValue: _cardRefQrValue,
+  const ref = { id: uid("CARDREF"), createdAt: new Date().toISOString(), photo: _cardRefPhotoBase64, qrValue: (_cardRefQrValue||'').trim(),
     avgColor: _cardRefSignature.avgColor, aspectRatio: _cardRefSignature.aspectRatio };
   refs.unshift(ref);
   save(CARD_REFS_KEY, refs);
