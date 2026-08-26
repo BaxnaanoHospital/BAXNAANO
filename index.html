@@ -336,6 +336,7 @@
         <div class="success-icon">✅</div>
         <h3>Ballanka waa la xaqiijiyay!</h3>
         <p class="muted">Thank you. Ballankaagu wuu diyaar sanyahay. Fadlan iska hubi lacagta</p>
+        <p class="muted" id="nightOrderNotice" style="display:none;font-weight:700;color:var(--navy);white-space:pre-line;"></p>
         <p class="muted" id="confDetails" style="font-weight:700;color:var(--navy);"></p>
       </div>
     </div>
@@ -371,7 +372,7 @@
     </div>
     <div class="card" style="background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff;">
       <div class="section-title"><span class="icon">🔒</span><h3 style="color:#fff;">Xakamaynta Xidhitaanka Dhakhaatiirta</h3></div>
-      <p class="muted" style="color:#cbd5e1;">Jadwal-caadi: dhakhaatiirtu waxay xidhmaan 6:30 PM, dib-u-furmaan 5:00 AM (otomaatig). Admin-ku wuxuu si gaar ah u xakamayn karaa waqti kasta.</p>
+      <p class="muted" style="color:#cbd5e1;">Jadwal-caadi: app-ku wuxuu xidhmaa 6:30 PM, dib-u-furmaa 10:00 PM (otomaatig). Admin-ku wuxuu si gaar ah u xakamayn karaa xidhitaanka.</p>
       <p style="font-size:13px;font-weight:700;margin:10px 0;color:#fff;" id="adminLockStatusText">Waa la sugayaa...</p>
       <div class="btn-row">
         <button class="btn btn-primary" style="animation:none;" id="adminLockToggleBtn" onclick="toggleAdminLockOverride()">🔒 Force Lock</button>
@@ -423,7 +424,7 @@
         </select>
       </div>
       <div style="overflow-x:auto;">
-        <table><thead><tr><th>Bukaanka</th><th>Telefoon</th><th>Dhakhtar</th><th>Taariikh</th><th>Fee</th><th>Status</th></tr></thead><tbody id="adminTableBody"></tbody></table>
+        <table><thead><tr><th>Bukaanka</th><th>Telefoon</th><th>Dhakhtar</th><th>Taariikh</th><th>Fee</th><th>Order Type</th><th>Status</th></tr></thead><tbody id="adminTableBody"></tbody></table>
       </div>
       <div id="adminEmpty" class="empty-state" style="display:none;"><span class="icon">📭</span>Wax ballan ah lama helin.</div>
     </div>
@@ -632,7 +633,7 @@ const ENTITY_ADAPTERS = {
       if(e2) throw e2;
       return (bookings||[]).map(b=>({
         id:b.id, createdAt:b.created_at, doctorKey:b.doctor_key, doctorName:b.doctor_name, department:b.department,
-        date:b.date, time:b.time, queueNumber:b.queue_number, fee:Number(b.fee)||0, status:b.status,
+        date:b.date, time:b.time, queueNumber:b.queue_number, fee:Number(b.fee)||0, status:b.status, orderType:b.order_type||getOrderType(b.created_at),
         paymentMethod:b.payment_method||'', paidAt:b.paid_at||undefined,
         patients:(patients||[]).filter(p=>p.booking_id===b.id).map(p=>({name:p.name, phone:p.phone||'', age:p.age||'', gender:p.gender||'', degmada:p.degmada||'', returning:p.is_returning||''}))
       })).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
@@ -640,8 +641,13 @@ const ENTITY_ADAPTERS = {
     async push(records){
       const rows = records.map(a=>({ id:a.id, created_at:a.createdAt||new Date().toISOString(), doctor_key:a.doctorKey||null,
         doctor_name:a.doctorName||null, department:a.department||null, date:a.date||null, time:a.time||null,
-        queue_number:a.queueNumber||null, fee:a.fee||0, status:a.status||'Pending', payment_method:a.paymentMethod||null, paid_at:a.paidAt||null }));
-      await upsertSyncParent('online_bookings', rows);
+        queue_number:a.queueNumber||null, fee:a.fee||0, status:a.status||'Pending', order_type:a.orderType||null, payment_method:a.paymentMethod||null, paid_at:a.paidAt||null }));
+      try{
+        await upsertSyncParent('online_bookings', rows);
+      }catch(error){
+        if(!String(error.message||error).toLowerCase().includes('order_type')) throw error;
+        await upsertSyncParent('online_bookings', rows.map(({order_type, ...row})=>row));
+      }
       // MUHIIM: bukaannada waxaan INSERT gareynaa KALIYA booking-yada
       // aan HORAY U LAHAYN bukaanno Supabase — marnaba lama TIRTIRIN
       // (delete) kadibna dib loo celin (insert). Sababta: bukaannadu
@@ -1005,7 +1011,7 @@ function switchMode(mode){
 }
 
 /* ==================== STEP 1 ==================== */
-/* ==================== DOCTOR ACCESS LOCK (6:30 PM - 5:00 AM, EAT) ====================
+/* ==================== ORDERING LOCK (6:30 PM - 10:00 PM, EAT) ====================
    MUHIIM: xidhitaanku waa in uu ku salaysnaadaa waqti aan la is-jeclaysiin
    karin — sidaas darteed waxaan isticmaaleynaa WAQTIGA SERVER-KA (Supabase,
    UTC) ma aha saacadda qalabka bukaanka (oo la beddeli karo). Refresh-gareyn
@@ -1013,7 +1019,9 @@ function switchMode(mode){
    xidhitaankan, sababtoo ah xisaabintu had iyo jeer waxay isticmaashaa
    waqtigii ugu dambeeyay ee server-ka laga soo qaatay. */
 const LOCK_START_MIN = 18*60 + 30; // 6:30 PM (EAT)
-const LOCK_END_MIN = 5*60;         // 5:00 AM (EAT)
+const LOCK_END_MIN = 22*60;        // 10:00 PM (EAT)
+const NIGHT_ORDER_START_MIN = 22*60; // 10:00 PM (EAT)
+const NIGHT_ORDER_END_MIN = 4*60 + 30; // 4:30 AM (EAT)
 const ADMIN_OVERRIDE_KEY = "bh_doctor_lock_override";
 let _serverTimeOffsetMs = 0; // farqiga u dhexeeya server-ka iyo qalabka
 let _serverTimeSynced = false;
@@ -1044,24 +1052,29 @@ function getEatMinutesOfDay(d){
 }
 function isWithinScheduledLockWindow(d){
   const m = getEatMinutesOfDay(d);
-  return m >= LOCK_START_MIN || m < LOCK_END_MIN; // xidhitaanku wuxuu ka gudbaa habeenbadhka
+  return m >= LOCK_START_MIN && m < LOCK_END_MIN;
+}
+function isNightOrderTime(d){
+  const m = getEatMinutesOfDay(d);
+  return m >= NIGHT_ORDER_START_MIN || m < NIGHT_ORDER_END_MIN;
+}
+function getOrderType(createdAt){
+  return isNightOrderTime(new Date(createdAt)) ? 'Night Order' : 'Normal Order';
 }
 function getAdminOverride(){ return load(ADMIN_OVERRIDE_KEY, { mode:'auto' }); }
 function getLockState(){
   const now = getEffectiveNow();
   const scheduledLocked = isWithinScheduledLockWindow(now);
   const override = getAdminOverride();
-  let locked = scheduledLocked;
-  if(override.mode === 'forceUnlock') locked = false;
-  else if(override.mode === 'forceLock') locked = true;
+  let locked = scheduledLocked || override.mode === 'forceLock';
   // Xisaabi marka xiga ee xaaladu isbedeli doonto (kaliya jadwalka
   // caadiga ah — override-ku waa gacan-ku-hayn, ma leh "waqti dhamaad").
   const eatM = getEatMinutesOfDay(now);
   let minutesUntilChange;
   if(scheduledLocked){
-    minutesUntilChange = eatM >= LOCK_START_MIN ? (24*60 - eatM + LOCK_END_MIN) : (LOCK_END_MIN - eatM);
+    minutesUntilChange = LOCK_END_MIN - eatM;
   } else {
-    minutesUntilChange = LOCK_START_MIN - eatM;
+    minutesUntilChange = eatM < LOCK_START_MIN ? LOCK_START_MIN - eatM : (24*60 - eatM + LOCK_START_MIN);
   }
   return { locked, scheduledLocked, override: override.mode, minutesUntilChange };
 }
@@ -1074,8 +1087,8 @@ function updateDoctorLockUI(){
   const state = getLockState();
   // NOTIFICATION — kaliya marka xaaladu run ahaantii isbedesho
   if(_lastLockState !== null && _lastLockState !== state.locked){
-    if(state.locked) toast("🔒 Dhakhaatiirta hadda way xidhan yihiin (ilaa 5:00 AM).");
-    else toast("🔓 Dhakhaatiirta hadda waa la furay!");
+    if(state.locked) toast("🔒 Dalabka online-ka hadda wuu xidhan yahay (ilaa 10:00 PM).");
+    else toast("🔓 Dalabka online-ka hadda wuu furmay!");
   }
   _lastLockState = state.locked;
 
@@ -1087,7 +1100,7 @@ function updateDoctorLockUI(){
   if(banner){
     if(state.locked && !isAdminMode){
       banner.style.display = 'flex';
-      titleEl.textContent = state.override === 'forceLock' ? '🔒 Admin-ku wuxuu si gaar ah u xidhay' : 'Dhakhaatiirta way xidhan yihiin (6:30 PM – 5:00 AM)';
+      titleEl.textContent = state.override === 'forceLock' && !state.scheduledLocked ? '🔒 Admin-ku wuxuu si gaar ah u xidhay' : 'Dalabka online-ka wuu xidhan yahay (6:30 PM – 10:00 PM)';
       const nextMin = Math.max(0, state.minutesUntilChange);
       const hh = Math.floor(nextMin/60), mm = Math.floor(nextMin%60);
       countdownEl.textContent = `Waxay dib u furmi doontaa: ${hh}s ${mm}dqq gudahood`;
@@ -1141,7 +1154,7 @@ function toggleAdminLockOverride(){
 }
 function resetAdminLockOverride(){
   setAdminLockOverride('auto');
-  toast("✅ Waxaa dib loogu celiyay jadwalka caadiga ah (6:30 PM–5:00 AM).");
+  toast("✅ Waxaa dib loogu celiyay jadwalka caadiga ah (6:30 PM–10:00 PM).");
 }
 async function pullAdminLockOverride(){
   if(!DB.enabled || !DB.client) return;
@@ -1153,7 +1166,7 @@ async function pullAdminLockOverride(){
 }
 // Isku day mar walba xisaabin cusub (ilbiriqsi kasta) — sidaas darteed
 // countdown-ku wuu socdaa, oo xaaladdu isla markiiba way isbedeshaa marka
-// waqtigu gaadho 6:30 PM ama 5:00 AM, iyada oo aan loo baahnayn refresh.
+// waqtigu gaadho 6:30 PM ama 10:00 PM, iyada oo aan loo baahnayn refresh.
 setInterval(updateDoctorLockUI, 1000);
 setInterval(syncServerTime, 5*60*1000); // cusboonaysii waqtiga server-ka 5 daqiiqo kasta
 
@@ -1167,7 +1180,7 @@ function renderDoctorGrid(){
     const locked = lockState.locked && !isAdminMode;
     el.className = 'doc-card' + (state.doctorKey===key ? ' selected':'') + (locked ? ' doc-locked':'');
     el.onclick = ()=>{
-      if(locked){ toast("🔒 Dhakhaatiirta way xidhan yihiin — waxay dib u furmayaan 5:00 AM."); return; }
+      if(locked){ toast("🔒 Dalabka online-ka wuu xidhan yahay — wuxuu dib u furmayaa 10:00 PM."); return; }
       selectDoctor(key);
     };
     const avatarInner = doc.photo ? `<img src="${doc.photo}" alt="${doc.name}">` : doc.avatar;
@@ -1357,8 +1370,14 @@ async function fastPushBooking(appt){
   if(!DB.enabled || !DB.client) return;
   const bookingRow = { id:appt.id, created_at:appt.createdAt||new Date().toISOString(), doctor_key:appt.doctorKey||null,
     doctor_name:appt.doctorName||null, department:appt.department||null, date:appt.date||null, time:appt.time||null,
-    queue_number:appt.queueNumber||null, fee:appt.fee||0, status:appt.status||'Pending', payment_method:appt.paymentMethod||null, paid_at:appt.paidAt||null };
-  await DB.client.from('online_bookings').upsert(bookingRow, {onConflict:'id'});
+    queue_number:appt.queueNumber||null, fee:appt.fee||0, status:appt.status||'Pending', order_type:appt.orderType||getOrderType(appt.createdAt), payment_method:appt.paymentMethod||null, paid_at:appt.paidAt||null };
+  const { error: bookingError } = await DB.client.from('online_bookings').upsert(bookingRow, {onConflict:'id'});
+  if(bookingError){
+    if(!String(bookingError.message||bookingError).toLowerCase().includes('order_type')) throw bookingError;
+    delete bookingRow.order_type;
+    const { error: retryError } = await DB.client.from('online_bookings').upsert(bookingRow, {onConflict:'id'});
+    if(retryError) throw retryError;
+  }
   const patientRows = (appt.patients||[]).map(p=>({ booking_id:appt.id, name:p.name, phone:p.phone||null, age:p.age||null, gender:p.gender||null, degmada:p.degmada||null, is_returning:p.returning||null }));
   if(patientRows.length) await DB.client.from('online_booking_patients').insert(patientRows);
 }
@@ -1371,7 +1390,7 @@ async function confirmBooking(){
   await syncServerTime();
   const lockCheck = getLockState();
   if(lockCheck.locked){
-    Swal.fire({ icon:'warning', title:'Dhakhaatiirta Way Xidhan Yihiin', text:'Xilligan booqashooyinku waa xidhan yihiin (6:30 PM – 5:00 AM). Fadlan isku day mar kale marka la furo.' });
+    Swal.fire({ icon:'warning', title:'Dalabka Online-ka Wuu Xidhan Yahay', text:'Xilligan dalabyadu waa xidhan yihiin (6:30 PM – 10:00 PM). Fadlan isku day mar kale 10:00 PM ka dib.' });
     return;
   }
   const fee = calcFee();
@@ -1386,8 +1405,9 @@ async function confirmBooking(){
     ]);
     state.date = freshSlot.date; state.time = freshSlot.time; state.queueNumber = freshSlot.queueNumber;
   }catch(e){ console.warn('Live slot refresh ma dhammaystirin — isticmaalaya lambarkii hore', e); }
+  const createdAt = getEffectiveNow().toISOString();
   const appt = {
-    id: uid("BH"), createdAt: new Date().toISOString(), doctorKey: state.doctorKey,
+    id: uid("BH"), createdAt, orderType: isNightOrderTime(new Date(createdAt)) ? 'Night Order' : 'Normal Order', doctorKey: state.doctorKey,
     doctorName: DOCTORS[state.doctorKey].name, department: DOCTORS[state.doctorKey].dept,
     patients: state.patients, date: state.date, time: state.time, queueNumber: state.queueNumber,
     fee: fee, status: "Paid", paymentMethod: "USSD", paidAt: new Date().toISOString()
@@ -1448,6 +1468,10 @@ async function confirmBooking(){
 function showConfirmation(appt){
   document.getElementById('view-booking').classList.remove('active');
   document.getElementById('view-confirmation').classList.add('active');
+  const nightNotice = document.getElementById('nightOrderNotice');
+  const isNight = (appt.orderType || getOrderType(appt.createdAt)) === 'Night Order';
+  nightNotice.style.display = isNight ? 'block' : 'none';
+  nightNotice.textContent = isNight ? 'Dalabkaaga waa la diiwaan geliyay.\n\nFadlan ogow: Dalabkan habeenkii ayaa la soo diray, waxaana lagu shaqeynayaa subaxda xigta marka shaqadu bilaabato 6:30 AM.' : '';
   document.getElementById('confDetails').textContent = `${appt.doctorName} (${appt.department}) — ${fmtDate(appt.date)}, ${fmtTime(appt.time)}`;
 }
 
@@ -1460,6 +1484,7 @@ function resetBooking(){
   goStep(1);
   document.getElementById('view-confirmation').classList.remove('active');
   document.getElementById('view-booking').classList.add('active');
+  document.getElementById('nightOrderNotice').style.display = 'none';
 }
 
 /* ==================== STEPS ==================== */
@@ -1754,12 +1779,13 @@ function renderAdminTable(){
   renderCardRefsTable();
   const body = document.getElementById('adminTableBody'); body.innerHTML = '';
   document.getElementById('adminEmpty').style.display = filtered.length ? 'none':'block';
-  filtered.forEach((a,i)=>{ const patients = getAppointmentPatients(a); const tr = document.createElement('tr'); tr.onclick = ()=>openApptDetail(a.id); tr.className = 'row-enter' + (recentlyAddedIds.has(a.id) ? ' flash-new' : ''); tr.style.animationDelay = (i*25)+'ms'; const badgeClass = {Pending:'badge-pending',Paid:'badge-paid',Completed:'badge-completed',Cancelled:'badge-cancelled'}[a.status]; tr.innerHTML = `<td><b>${patients[0].name}</b>${patients.length>1?` <span style="color:var(--gray-400)">+${patients.length-1}</span>`:''}</td><td>${patients[0].phone||'-'}</td><td>${(a.doctorName||'Doctor').replace('Dr. ','')}</td><td>${fmtDate(a.date)}</td><td><b>$${a.fee||0}</b></td><td><span class="badge ${badgeClass||'badge-pending'}">${a.status||'Pending'}</span></td>`; body.appendChild(tr); });
+  filtered.forEach((a,i)=>{ const patients = getAppointmentPatients(a); const tr = document.createElement('tr'); tr.onclick = ()=>openApptDetail(a.id); tr.className = 'row-enter' + (recentlyAddedIds.has(a.id) ? ' flash-new' : ''); tr.style.animationDelay = (i*25)+'ms'; const badgeClass = {Pending:'badge-pending',Paid:'badge-paid',Completed:'badge-completed',Cancelled:'badge-cancelled'}[a.status]; const orderType = a.orderType || getOrderType(a.createdAt); tr.innerHTML = `<td><b>${patients[0].name}</b>${patients.length>1?` <span style="color:var(--gray-400)">+${patients.length-1}</span>`:''}</td><td>${patients[0].phone||'-'}</td><td>${(a.doctorName||'Doctor').replace('Dr. ','')}</td><td>${fmtDate(a.date)}</td><td><b>$${a.fee||0}</b></td><td><span class="badge ${orderType==='Night Order'?'badge-pending':'badge-completed'}">${orderType}</span></td><td><span class="badge ${badgeClass||'badge-pending'}">${a.status||'Pending'}</span></td>`; body.appendChild(tr); });
 }
 function openApptDetail(id){
   const all = load(APPTS_KEY, []); const a = all.find(x=>x.id===id); if(!a) return;
   const patients = getAppointmentPatients(a);
-  document.getElementById('apptDetailContent').innerHTML = `<h3 style="color:var(--navy);margin-bottom:2px;">${patients[0].name}</h3><p class="muted" style="margin-bottom:14px;">${fmtDate(a.date)}, ${fmtTime(a.time)} — ${a.doctorName||'Doctor'}</p><div class="card" style="margin-top:10px;padding:14px;">${patients.map(p=>`<div class="summary-row" style="padding:8px 0;"><span class="label">${p.name}${p.returning?` <span style="font-size:11px;color:var(--gray-500);">(${p.returning==='yes'?'Horay wuu yimid':'Cusub'})</span>`:''}</span><span class="val" style="font-size:12px;">${p.phone||'-'} · ${p.age||'-'}y · ${p.gender||'-'} · ${p.degmada||'-'}</span></div>`).join('')}<div class="summary-row total-row" style="margin-top:6px;"><span class="label">Fee</span><span class="val">$${a.fee||0}</span></div><div class="summary-row"><span class="label">Payment</span><span class="val">${a.paymentMethod||'-'}${a.paidAt ? ' · '+new Date(a.paidAt).toLocaleString() : ''}</span></div></div><label style="margin-top:16px;">Beddel Xaaladda (Status)</label><select id="statusSelect" onchange="updateStatus('${a.id}', this.value)" style="margin-bottom:14px;">${['Pending','Paid','Completed','Cancelled'].map(s=>`<option ${a.status===s?'selected':''}>${s}</option>`).join('')}</select><div class="btn-row"><button class="btn btn-outline btn-sm" onclick="printReceipt('${a.id}')">🖨️ Print</button><button class="btn btn-ghost btn-sm" onclick="closeApptDetail()">Xir</button></div><button class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;" onclick="deleteBooking('${a.id}')">🗑️ Tirtir Ballanka</button>`;
+  const orderType = a.orderType || getOrderType(a.createdAt);
+  document.getElementById('apptDetailContent').innerHTML = `<h3 style="color:var(--navy);margin-bottom:2px;">${patients[0].name}</h3><p class="muted" style="margin-bottom:14px;">${fmtDate(a.date)}, ${fmtTime(a.time)} — ${a.doctorName||'Doctor'}</p><div class="card" style="margin-top:10px;padding:14px;">${patients.map(p=>`<div class="summary-row" style="padding:8px 0;"><span class="label">${p.name}${p.returning?` <span style="font-size:11px;color:var(--gray-500);">(${p.returning==='yes'?'Horay wuu yimid':'Cusub'})</span>`:''}</span><span class="val" style="font-size:12px;">${p.phone||'-'} · ${p.age||'-'}y · ${p.gender||'-'} · ${p.degmada||'-'}</span></div>`).join('')}<div class="summary-row total-row" style="margin-top:6px;"><span class="label">Fee</span><span class="val">$${a.fee||0}</span></div><div class="summary-row"><span class="label">Order Type</span><span class="val">${orderType}</span></div><div class="summary-row"><span class="label">Payment</span><span class="val">${a.paymentMethod||'-'}${a.paidAt ? ' · '+new Date(a.paidAt).toLocaleString() : ''}</span></div></div><label style="margin-top:16px;">Beddel Xaaladda (Status)</label><select id="statusSelect" onchange="updateStatus('${a.id}', this.value)" style="margin-bottom:14px;">${['Pending','Paid','Completed','Cancelled'].map(s=>`<option ${a.status===s?'selected':''}>${s}</option>`).join('')}</select><div class="btn-row"><button class="btn btn-outline btn-sm" onclick="printReceipt('${a.id}')">🖨️ Print</button><button class="btn btn-ghost btn-sm" onclick="closeApptDetail()">Xir</button></div><button class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;" onclick="deleteBooking('${a.id}')">🗑️ Tirtir Ballanka</button>`;
   document.getElementById('apptDetailModal').classList.add('active');
 }
 function closeApptDetail(){ document.getElementById('apptDetailModal').classList.remove('active'); }
@@ -1805,8 +1831,8 @@ function deleteBooking(id){
   });
 }
 function exportCSV(){
-  const all = load(APPTS_KEY, []); const rows = [["ID","Patient","Phone","Doctor","Department","Date","Time","Fee","Status","PaidAt"]];
-  all.forEach(a=>{ a.patients.forEach(p=>{ rows.push([a.id,p.name,p.phone,a.doctorName,a.department,a.date,a.time,a.fee,a.status,a.paidAt||'']); }); });
+  const all = load(APPTS_KEY, []); const rows = [["ID","Patient","Phone","Doctor","Department","Date","Time","Fee","Order Type","Status","PaidAt"]];
+  all.forEach(a=>{ const orderType = a.orderType || getOrderType(a.createdAt); a.patients.forEach(p=>{ rows.push([a.id,p.name,p.phone,a.doctorName,a.department,a.date,a.time,a.fee,orderType,a.status,a.paidAt||'']); }); });
   const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'baxnaano_appointments.csv'; link.click(); URL.revokeObjectURL(url); toast("✅ CSV waa la soo dejiyay.");
 }
@@ -1814,7 +1840,9 @@ function exportCSV(){
 /* ==================== PRINT ==================== */
 function printReceipt(id){
   const all = load(APPTS_KEY, []); const a = all.find(x=>x.id===id); if(!a) return;
-  document.getElementById('printArea').innerHTML = `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;"><div style="text-align:center;margin-bottom:20px;"><h2 style="color:#0a2540;margin-bottom:4px;font-size:24px;">BAXNAANO HOSPITAL</h2><p style="color:#64748b;margin:0;font-size:13px;">Appointment Receipt</p></div><hr style="border:none;border-top:2px dashed #e2e8f0;margin:16px 0;"><p style="margin:8px 0;font-size:14px;"><b>Booking ID:</b> ${a.id}</p><p style="margin:8px 0;font-size:14px;"><b>Doctor:</b> ${a.doctorName} — ${a.department}</p><p style="margin:8px 0;font-size:14px;"><b>Date/Time:</b> ${fmtDate(a.date)}, ${fmtTime(a.time)}</p><p style="margin:8px 0;font-size:14px;"><b>Status:</b> ${a.status}</p><hr style="border:none;border-top:2px dashed #e2e8f0;margin:16px 0;">${a.patients.map(p=>`<p style="margin:6px 0;font-size:13px;color:#334155;">${p.name} — ${p.phone} — ${p.gender}, ${p.age||'-'}y — ${p.degmada}</p>`).join('')}<hr style="border:none;border-top:2px dashed #e2e8f0;margin:16px 0;"><p style="margin:8px 0;font-size:16px;font-weight:800;color:#0a2540;"><b>Total Fee:</b> $${a.fee}</p><p style="color:#94a3b8;font-size:11px;margin-top:30px;text-align:center;">Waad ku mahadsan tahay inaad doorateen Baxnaano Hospital.<br>Generated on ${new Date().toLocaleString()}</p></div>`;
+  const orderType = a.orderType || getOrderType(a.createdAt);
+  const nightPrintNote = orderType === 'Night Order' ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;font-size:13px;line-height:1.6;"><b>Fiiro gaar ah:</b><br><br>Dalabkan waxaa la soo diray habeenkii (10:00 PM - 4:30 AM).<br><br>Waxaa lagu shaqeynayaa subaxda xigta marka shaqadu bilaabato 6:30 AM.<br><br>Mahadsanid.</div>` : '';
+  document.getElementById('printArea').innerHTML = `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;"><div style="text-align:center;margin-bottom:20px;"><h2 style="color:#0a2540;margin-bottom:4px;font-size:24px;">BAXNAANO HOSPITAL</h2><p style="color:#64748b;margin:0;font-size:13px;">Appointment Receipt</p></div><hr style="border:none;border-top:2px dashed #e2e8f0;margin:16px 0;"><p style="margin:8px 0;font-size:14px;"><b>Booking ID:</b> ${a.id}</p><p style="margin:8px 0;font-size:14px;"><b>Doctor:</b> ${a.doctorName} — ${a.department}</p><p style="margin:8px 0;font-size:14px;"><b>Date/Time:</b> ${fmtDate(a.date)}, ${fmtTime(a.time)}</p><p style="margin:8px 0;font-size:14px;"><b>Order Type:</b> ${orderType}</p><p style="margin:8px 0;font-size:14px;"><b>Status:</b> ${a.status}</p>${nightPrintNote}<hr style="border:none;border-top:2px dashed #e2e8f0;margin:16px 0;">${a.patients.map(p=>`<p style="margin:6px 0;font-size:13px;color:#334155;">${p.name} — ${p.phone} — ${p.gender}, ${p.age||'-'}y — ${p.degmada}</p>`).join('')}<hr style="border:none;border-top:2px dashed #e2e8f0;margin:16px 0;"><p style="margin:8px 0;font-size:16px;font-weight:800;color:#0a2540;"><b>Total Fee:</b> $${a.fee}</p><p style="color:#94a3b8;font-size:11px;margin-top:30px;text-align:center;">Waad ku mahadsan tahay inaad doorateen Baxnaano Hospital.<br>Generated on ${new Date().toLocaleString()}</p></div>`;
   window.print();
 }
 
