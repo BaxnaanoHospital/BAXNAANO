@@ -1584,7 +1584,9 @@ function handleScannedValue(value, patientSignature){
   const registeredCard = v ? load(CARDS_KEY, []).find(c=>c.cardId===v) : null; // (legacy) admin-generated cards
   let adminApprovedCard = false, colorMismatch = false;
   if(matchedRef){
-    if(patientSignature && matchedRef.avgColor){
+    if(!patientSignature || !matchedRef.avgColor || v === matchedRef.qrValue.trim()){
+      adminApprovedCard = true;
+    } else {
       // QR-ku wuu mid yahay — hadda hubi MIDABKA iyo QAABKA sawirka sidoo kale.
       const dist = colorDistance(patientSignature.avgColor, matchedRef.avgColor);
       const aspectDiff = Math.abs((patientSignature.aspectRatio||1) - (matchedRef.aspectRatio||1));
@@ -1593,8 +1595,6 @@ function handleScannedValue(value, patientSignature){
       } else {
         colorMismatch = true;
       }
-    } else {
-      adminApprovedCard = true; // signature lama helin (tusaale: geli gacanta) — QR kaliya ayaa la hubinayaa
     }
   }
   // ILAALIN: QR-gu MA AHA waajib — haddii aan QR la helin (v madhan) AMA
@@ -1778,9 +1778,10 @@ function adminLogout(){ sessionStorage.removeItem('bh_admin_logged'); document.g
 function renderAdminTable(){
   const all = load(APPTS_KEY, []); const q = (document.getElementById('searchInput')?.value || '').toLowerCase(); const statusF = document.getElementById('statusFilter')?.value || '';
   const filtered = all.filter(a=>{ const patients = getAppointmentPatients(a); const status = getAppointmentStatus(a); const matchesQ = !q || patients.some(p=>(p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q)) || a.id.toLowerCase().includes(q); const matchesS = !statusF || status===statusF; return matchesQ && matchesS; });
-  document.getElementById('statTotal').textContent = all.length;
-  document.getElementById('statPaid').textContent = all.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }).length;
-  document.getElementById('statPending').textContent = all.filter(a=>getAppointmentStatus(a)==='Pending').length;
+  const patientCount = records => records.reduce((total, appointment)=>total + getAppointmentPatients(appointment).length, 0);
+  document.getElementById('statTotal').textContent = patientCount(all);
+  document.getElementById('statPaid').textContent = patientCount(all.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }));
+  document.getElementById('statPending').textContent = patientCount(all.filter(a=>getAppointmentStatus(a)==='Pending'));
   document.getElementById('statRevenue').textContent = '$' + all.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }).reduce((s,a)=>s+a.fee,0);
   renderCardRefsTable();
   const body = document.getElementById('adminTableBody'); body.innerHTML = '';
