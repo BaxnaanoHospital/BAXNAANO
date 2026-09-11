@@ -297,10 +297,13 @@
   body{
     background-color:#f3f8f9;
     background-image:
+      linear-gradient(115deg,rgba(255,255,255,.72) 0 18%,transparent 18% 100%),
+      repeating-linear-gradient(135deg,rgba(18,94,111,.025) 0 1px,transparent 1px 18px),
       radial-gradient(ellipse 70% 42% at 50% -8%,rgba(74,189,193,.18),transparent 70%),
       radial-gradient(ellipse 48% 34% at 100% 28%,rgba(10,127,164,.1),transparent 72%),
       radial-gradient(ellipse 46% 38% at 0% 76%,rgba(112,204,182,.1),transparent 74%),
-      linear-gradient(180deg,#eef7f8 0%,#f8fbfb 46%,#edf5f6 100%);
+      linear-gradient(180deg,#edf7f8 0%,#fbfdfd 46%,#eaf4f5 100%);
+    background-size:auto,auto,auto,auto,auto,100% 100%;
     background-attachment:fixed;
   }
   body::before{
@@ -312,9 +315,121 @@
     background-size:42px 42px,42px 42px,9px 9px;
     mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),rgba(0,0,0,.35) 72%,transparent 100%);
   }
-  @media (max-width:480px){body{background-attachment:scroll;background-image:radial-gradient(ellipse 95% 32% at 50% -5%,rgba(74,189,193,.16),transparent 72%),radial-gradient(ellipse 80% 32% at 100% 34%,rgba(10,127,164,.07),transparent 74%),linear-gradient(180deg,#eef7f8 0%,#f8fbfb 50%,#edf5f6 100%)}}
+  @media (max-width:480px){body{background-attachment:scroll;background-image:repeating-linear-gradient(135deg,rgba(18,94,111,.022) 0 1px,transparent 1px 16px),radial-gradient(ellipse 95% 32% at 50% -5%,rgba(74,189,193,.16),transparent 72%),radial-gradient(ellipse 80% 32% at 100% 34%,rgba(10,127,164,.07),transparent 74%),linear-gradient(180deg,#edf7f8 0%,#fbfdfd 50%,#eaf4f5 100%)}}
+  /* Motion refinement: short, quiet transitions with no distracting loops. */
+  :root{--motion-fast:160ms;--motion-base:240ms;--motion-smooth:cubic-bezier(.22,.61,.36,1)}
+  *,*::before,*::after{transition-timing-function:var(--motion-smooth)}
+  .view.active{animation:softViewIn 360ms var(--motion-smooth) both}
+  @keyframes softViewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .card{transition:transform var(--motion-base) var(--motion-smooth),box-shadow var(--motion-base) var(--motion-smooth),border-color var(--motion-base) var(--motion-smooth)}
+  .card:hover{transform:translateY(-2px)}
+  .doc-card{transition:transform var(--motion-base) var(--motion-smooth),box-shadow var(--motion-base) var(--motion-smooth),border-color var(--motion-base) var(--motion-smooth),background-color var(--motion-base) var(--motion-smooth)}
+  .doc-card:hover{transform:translateY(-3px)}
+  .doc-card:active{transform:translateY(-1px) scale(.99)}
+  .btn,.nav-toggle button,.add-patient-btn,.scan-btn,.patient-block .rm,#installBtn{transition:transform var(--motion-fast) var(--motion-smooth),box-shadow var(--motion-fast) var(--motion-smooth),background-color var(--motion-fast) var(--motion-smooth),border-color var(--motion-fast) var(--motion-smooth),color var(--motion-fast) var(--motion-smooth),opacity var(--motion-fast) var(--motion-smooth)}
+  .btn:hover{transform:translateY(-1px)}
+  .btn:active{transform:translateY(0) scale(.99)}
+  .btn-primary{animation:none}
+  .btn::after{transition:opacity var(--motion-fast) var(--motion-smooth)}
+  input,select{transition:border-color var(--motion-fast) var(--motion-smooth),box-shadow var(--motion-fast) var(--motion-smooth),background-color var(--motion-fast) var(--motion-smooth)}
+  input:focus,select:focus{transform:none}
+  .step .dot,.step .lbl,.step:not(:last-child)::after{transition:background-color var(--motion-base) var(--motion-smooth),color var(--motion-base) var(--motion-smooth),box-shadow var(--motion-base) var(--motion-smooth),transform var(--motion-base) var(--motion-smooth)}
+  .step.active .dot{animation:stepSettle 420ms var(--motion-smooth) both}
+  @keyframes stepSettle{from{opacity:.7;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+  .doc-card.selected .check{animation:checkSettle 260ms var(--motion-smooth) both}
+  @keyframes checkSettle{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:scale(1)}}
+  .patient-block{animation:patientReveal 280ms var(--motion-smooth) both}
+  @keyframes patientReveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+  .announce-banner{animation:bannerReveal 300ms var(--motion-smooth) both}
+  @keyframes bannerReveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+  .success-icon{animation:successSettle 420ms var(--motion-smooth) both}
+  @keyframes successSettle{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+  .row-enter{animation:rowReveal 260ms var(--motion-smooth) both}
+  @keyframes rowReveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .flash-new{animation:quietFlash 1600ms var(--motion-smooth) both,rowReveal 260ms var(--motion-smooth) both}
+  @keyframes quietFlash{0%{background:rgba(16,167,124,.16)}100%{background:transparent}}
+  .stat{animation:statReveal 380ms var(--motion-smooth) both}
+  @keyframes statReveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+  .toast{transition:opacity 260ms var(--motion-smooth),transform 260ms var(--motion-smooth)}
+  .appt-detail-modal.active,#qrModal.active{animation:modalFade 220ms var(--motion-smooth) both}
+  @keyframes modalFade{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.btn-primary,.step.active .dot,.doc-card.selected .check,.patient-block,.announce-banner,.success-icon,.row-enter,.flash-new,.stat,.view.active,.appt-detail-modal.active,#qrModal.active{animation:none!important}.card:hover,.doc-card:hover,.btn:hover{transform:none!important}}
   @media (max-width:480px){header.topbar{padding:12px}.brand-text .title{font-size:14px}.brand-text .sub{font-size:10px}.nav-toggle button{padding:7px 10px}main{padding:16px 12px 66px}.card{padding:17px;border-radius:16px}.btn-row{gap:9px}.stat-grid{gap:7px}.stat{border-radius:12px}.stat .num{font-size:17px}.stat .lbl{font-size:8.5px}.toolbar{display:grid;grid-template-columns:1fr}.toolbar input,.toolbar select{min-width:0}.summary-row{font-size:13.5px}.summary-row .val{max-width:55%}}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+  /* Color-rich visual finish: animated atmosphere without adding extra markup. */
+  body{
+    background-color:#eef7f7;
+    background-image:
+      linear-gradient(120deg,rgba(255,255,255,.82),transparent 34%),
+      linear-gradient(300deg,rgba(255,126,103,.09),transparent 35%),
+      radial-gradient(ellipse 65% 38% at 8% 8%,rgba(33,182,201,.2),transparent 72%),
+      radial-gradient(ellipse 58% 42% at 94% 36%,rgba(74,144,226,.16),transparent 72%),
+      linear-gradient(135deg,#eaf8f6 0%,#f8fbff 48%,#fff4ef 100%);
+    background-size:140% 140%,130% 130%,120% 120%,120% 120%,100% 100%;
+    animation:colorDrift 18s ease-in-out infinite alternate;
+  }
+  @keyframes colorDrift{0%{background-position:0% 0%,100% 100%,0% 0%,100% 0%,0% 0%}100%{background-position:25% 12%,72% 86%,18% 8%,82% 18%,0% 0%}}
+  header.topbar{background:linear-gradient(115deg,#102a43 0%,#126782 45%,#0aa77b 100%);background-size:180% 180%;animation:headerColorFlow 12s ease-in-out infinite alternate}
+  @keyframes headerColorFlow{from{background-position:0% 50%}to{background-position:100% 50%}}
+  .card{background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(244,251,253,.92));border-color:rgba(33,182,201,.2);box-shadow:0 10px 28px rgba(16,42,67,.08)}
+  .card:hover{border-color:rgba(33,182,201,.48);box-shadow:0 16px 34px rgba(16,42,67,.13)}
+  .doc-card:nth-child(4n+1){--card-accent:#087fbd}.doc-card:nth-child(4n+2){--card-accent:#8b5cf6}.doc-card:nth-child(4n+3){--card-accent:#0aa77b}.doc-card:nth-child(4n){--card-accent:#ef8354}
+  .doc-card::before{background:linear-gradient(90deg,var(--card-accent),#21b6c9);}
+  .doc-card:hover{border-color:var(--card-accent);box-shadow:0 18px 34px color-mix(in srgb,var(--card-accent) 20%,transparent);}
+  .section-title .icon{animation:iconFloat 3.2s ease-in-out infinite}
+  @keyframes iconFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-3deg)}}
+  .btn-primary{background:linear-gradient(120deg,#087fbd,#1267a0,#0aa77b);background-size:200% 200%;animation:buttonColorFlow 6s ease-in-out infinite alternate}
+  @keyframes buttonColorFlow{from{background-position:0% 50%}to{background-position:100% 50%}}
+  .announce-banner{animation:bannerReveal 300ms var(--motion-smooth) both,announceGlow 3s ease-in-out infinite alternate}
+  @keyframes announceGlow{from{box-shadow:0 6px 18px rgba(217,148,32,.1)}to{box-shadow:0 8px 24px rgba(239,131,84,.24)}}
+  @media (prefers-reduced-motion:reduce){body,header.topbar,.btn-primary,.section-title .icon,.announce-banner{animation:none!important}}
+  /* Final visual palette: calm clinical navy, fresh mint, warm coral accents. */
+  @keyframes brokenGlassShimmer{
+    0%{background-position:0% 0%,0% 0%,0% 0%,0% 0%,0% 0%,0% 0%,0% 0%,88% 8%,12% 74%,0% 0%}
+    50%{background-position:1.5% 1%,98% 1%,1% 2%,99% 0%,1% 1%,2% 1%,98% 2%,90% 10%,10% 72%,0% 0%}
+    100%{background-position:0% 2%,1% 0%,0% 1%,2% 2%,99% 1%,1% 2%,99% 0%,86% 7%,14% 76%,0% 0%}
+  }
+  body{
+    color:#173042;
+    background-color:#f4f6fa;
+    background-image:
+      linear-gradient(28deg,transparent 0 45%,rgba(255,255,255,.9) 45.2% 45.45%,transparent 45.7%),
+      linear-gradient(151deg,transparent 0 37%,rgba(111,211,232,.27) 37.2% 37.55%,transparent 37.8%),
+      linear-gradient(72deg,transparent 0 62%,rgba(236,146,210,.22) 62.2% 62.55%,transparent 62.8%),
+      linear-gradient(118deg,transparent 0 28%,rgba(159,125,226,.2) 28.2% 28.5%,transparent 28.8%),
+      linear-gradient(166deg,transparent 0 72%,rgba(83,190,239,.2) 72.2% 72.5%,transparent 72.8%),
+      conic-gradient(from 18deg at 18% 20%,rgba(120,210,235,.18),rgba(255,255,255,.56),rgba(197,143,237,.16),rgba(255,183,218,.2),rgba(120,210,235,.18)),
+      conic-gradient(from 210deg at 82% 66%,rgba(255,255,255,.56),rgba(107,202,238,.16),rgba(240,152,211,.18),rgba(173,137,231,.18),rgba(255,255,255,.56)),
+      radial-gradient(circle at 88% 8%,rgba(196,142,235,.2),transparent 27%),
+      radial-gradient(circle at 12% 74%,rgba(76,202,232,.16),transparent 30%),
+      linear-gradient(145deg,#fbfcff 0%,#f4f7fb 52%,#f7f1fa 100%);
+    background-size:100% 100%,100% 100%,100% 100%,100% 100%,100% 100%,52% 58%,64% 70%,auto,auto,100% 100%;
+    background-attachment:fixed;
+    animation:brokenGlassShimmer 18s ease-in-out infinite alternate;
+  }
+  header.topbar{
+    background:linear-gradient(110deg,#102a43 0%,#155b73 52%,#0b967e 100%);
+    box-shadow:0 8px 24px rgba(16,42,67,.2);
+    animation:none;
+  }
+  main{background:rgba(255,255,255,.24)}
+  .card{
+    background:rgba(255,255,255,.9);
+    border:1px solid rgba(24,139,145,.18);
+    box-shadow:0 12px 30px rgba(16,42,67,.08);
+    backdrop-filter:blur(12px);
+  }
+  .card:hover{box-shadow:0 18px 38px rgba(16,42,67,.13)}
+  .doc-card{background:linear-gradient(145deg,#fff 0%,#f3fbfa 100%)}
+  .doc-card:nth-child(4n+1){--card-accent:#087fbd}.doc-card:nth-child(4n+2){--card-accent:#d06b50}.doc-card:nth-child(4n+3){--card-accent:#0b967e}.doc-card:nth-child(4n){--card-accent:#5b67b2}
+  .doc-card::before{background:linear-gradient(90deg,var(--card-accent),#25bca6)}
+  .btn-primary{background:linear-gradient(115deg,#087fbd,#155b73);box-shadow:0 8px 18px rgba(8,127,189,.22);animation:none}
+  .btn-success{background:linear-gradient(115deg,#0b967e,#087f68);box-shadow:0 8px 18px rgba(11,150,126,.2)}
+  .btn-outline{border-color:#42aeb0;color:#08729a;background:rgba(255,255,255,.82)}
+  .section-title{color:#123c54}
+  .announce-banner{background:linear-gradient(135deg,#fff5df,#ffe6d7);border-color:#f0b27f}
+  @media (max-width:480px){body{background-attachment:scroll}}
+  @media (prefers-reduced-motion:reduce){body{animation:none!important}}
 </style>
 </head>
 <body>
@@ -676,6 +791,8 @@ function escapeHtml(text){ const div = document.createElement('div'); div.textCo
 ================================================================ */
 const SUPABASE_URL = 'https://tpmsyyhrnciqqcxlfamr.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_exzgU4lfqJpzI89f8Jjl7w_5vT2d4NR';
+function isAdminSession(){ return sessionStorage.getItem('bh_admin_logged') === '1'; }
+function canPullEntity(key){ return key === 'bh_announcement' || isAdminSession(); }
 
 async function upsertSyncParent(table, rows, idKey){
   idKey = idKey || 'id';
@@ -808,6 +925,7 @@ const DB = {
       this.client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       let anySuccess = false, lastErr = null, criticalFailed = false;
       for(const key of Object.keys(ENTITY_ADAPTERS)){
+        if(!canPullEntity(key)) continue;
         // MUHIIM: isku day ILAA 3 JEER (haddii xiriir/network dhib ah
         // dhaco) — haddii kale, admin/qof kasta oo dhawaan soo galay
         // wuxuu heli lahaa xog QADIIMI AH (stale) iyada oo aan
@@ -936,14 +1054,7 @@ const DB = {
       if(error){ report.push('❌ SELECT khalad: '+(error.message||JSON.stringify(error))+' — ma shubtay SQL-ka?'); return report; }
       report.push('✅ SELECT wuu shaqeeyay.');
     }catch(err){ report.push('❌ SELECT exception: '+err.message); return report; }
-    try{
-      const testId = '__test_'+Date.now();
-      const { error: upErr } = await this.client.from('online_bookings').insert({id:testId, status:'Pending', fee:0});
-      if(upErr){ report.push('❌ INSERT khalad: '+(upErr.message||JSON.stringify(upErr))); return report; }
-      report.push('✅ INSERT wuu shaqeeyay.');
-      await this.client.from('online_bookings').delete().eq('id', testId);
-      report.push('✅ DELETE wuu shaqeeyay.');
-    }catch(err){ report.push('❌ WRITE exception: '+err.message); return report; }
+    report.push('ℹ️ INSERT/DELETE test waa la booday — public browser-ku ma tijaabin karo destructive writes.');
     report.push(this.enabled ? '✅ Sync-ku waa firfircoon.' : '⚠️ enabled=false — refresh bogga.');
     return report;
   },
@@ -2039,6 +2150,7 @@ async function retrySyncIfNeeded(){
 async function refreshFromSupabase(){
   if(!DB.enabled || !DB.client) return;
   for(const key of Object.keys(ENTITY_ADAPTERS)){
+    if(!canPullEntity(key)) continue;
     try{
       const records = await ENTITY_ADAPTERS[key].pull();
       safeApplyPull(key, records);
