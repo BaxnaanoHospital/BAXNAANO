@@ -605,6 +605,9 @@
     <div class="card">
       <div class="toolbar">
         <input type="text" id="searchInput" placeholder="Search magac/telefoon..." oninput="renderAdminTable()">
+        <select id="dateFilter" onchange="renderAdminTable()">
+          <option value="today" selected>Today</option><option value="all">All Dates</option>
+        </select>
         <select id="statusFilter" onchange="renderAdminTable()">
           <option value="">All Status</option><option>Pending</option><option>Paid</option><option>Completed</option><option>Cancelled</option>
         </select>
@@ -699,8 +702,13 @@ let currentApptId = null;
 let waWindowRef = null;
 let countdownInterval = null;
 const pendingAppointmentWrites = new Map();
+const bookingPatientPushes = new Map();
+let bookingSubmissionInProgress = false;
 
-function uid(prefix){ return prefix + "-" + Math.random().toString(36).slice(2,7).toUpperCase(); }
+function uid(prefix){
+  const id = crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${id.toUpperCase()}`;
+}
 function load(key, fallback){
   try{
     let raw = localStorage.getItem(key);
@@ -807,6 +815,24 @@ async function upsertSyncParent(table, rows, idKey){
     if(error) throw error;
   }
 }
+async function ensureBookingPatients(appt){
+  if(!appt || !appt.id || !Array.isArray(appt.patients) || !appt.patients.length) return;
+  if(bookingPatientPushes.has(appt.id)) return bookingPatientPushes.get(appt.id);
+  const push = (async ()=>{
+    const { data: existing, error: readError } = await DB.client.from('online_booking_patients').select('booking_id').eq('booking_id', appt.id);
+    if(!readError && (existing||[]).length) return;
+    const patientRows = appt.patients.map(p=>({ booking_id:appt.id, name:p.name, phone:p.phone||null, age:p.age||null, gender:p.gender||null, degmada:p.degmada||null, is_returning:p.returning||null }));
+    const { error } = await DB.client.from('online_booking_patients').insert(patientRows);
+    if(error){
+      if(error.code !== '23505') throw error;
+      if(readError) return;
+      const { data: inserted, error: verifyError } = await DB.client.from('online_booking_patients').select('booking_id').eq('booking_id', appt.id);
+      if(verifyError || (inserted||[]).length < patientRows.length) throw verifyError || error;
+    }
+  })();
+  bookingPatientPushes.set(appt.id, push);
+  try{ await push; }finally{ bookingPatientPushes.delete(appt.id); }
+}
 async function replaceChildRows(childTable, parentIdField, parentIds, childRows){
   if(parentIds.length){
     const { error } = await DB.client.from(childTable).delete().in(parentIdField, parentIds);
@@ -842,23 +868,7 @@ const ENTITY_ADAPTERS = {
         if(!String(error.message||error).toLowerCase().includes('order_type')) throw error;
         await upsertSyncParent('online_bookings', rows.map(({order_type, ...row})=>row));
       }
-      // MUHIIM: bukaannada waxaan INSERT gareynaa KALIYA booking-yada
-      // aan HORAY U LAHAYN bukaanno Supabase — marnaba lama TIRTIRIN
-      // (delete) kadibna dib loo celin (insert). Sababta: bukaannadu
-      // marnaba isma bedelaan booking-ka kadib (UI-gu ma bixiyo
-      // "wax ka beddel bukaanka"), sidaas darteed delete+insert lama
-      // baahna — oo waxa uu keeni jiray CILAD: dhexdiisa waqti yar
-      // (window) qalabyada kale (realtime) waxay arki karaan booking-ka
-      // oo bukaan la'aan ah SI KU MEEL GAAR AH (flicker/"xog qarsoomay"),
-      // xitaa in kasta oo xogtu aysan si joogto ah u lumin.
-      const { data: existingLinks } = await DB.client.from('online_booking_patients').select('booking_id');
-      const alreadyHave = new Set((existingLinks||[]).map(r=>r.booking_id));
-      const patientRows = [];
-      records.forEach(a=>{
-        if(alreadyHave.has(a.id)) return; // horeyba waa jiraan Supabase — ha taaban, ha tirtirin
-        (a.patients||[]).forEach(p=> patientRows.push({ booking_id:a.id, name:p.name, phone:p.phone||null, age:p.age||null, gender:p.gender||null, degmada:p.degmada||null, is_returning:p.returning||null }));
-      });
-      if(patientRows.length) await DB.client.from('online_booking_patients').insert(patientRows);
+      for(const appointment of records) await ensureBookingPatients(appointment);
     }
   },
   bh_cards: { tables:['family_cards'],
@@ -1192,7 +1202,7 @@ function switchMode(mode){
     const loggedIn = sessionStorage.getItem('bh_admin_logged') === '1';
     document.getElementById('view-admin-login').classList.toggle('active', !loggedIn);
     document.getElementById('view-admin-dashboard').classList.toggle('active', loggedIn);
-    if(loggedIn){ if(!knownBookingIds) initKnownBookingIds(); renderAdminTable(); updateSyncUI(); refreshFromSupabase(); }
+    if(loggedIn){ renderAdminTable(); updateSyncUI(); refreshFromSupabase(); }
   }
   updateDoctorLockUI();
   renderDoctorGrid();
@@ -1388,7 +1398,7 @@ function selectDoctor(key){
 const DEGMO_LIST = ["Hodan","Howlwadaag","Wadajir","Warta Nabadda","Waaberi","Shangaani","Xamar Weyne","Xamar Jajab","Boondheere","Cabdicasiis","Shibis","Kaaraan","Yaaqshiid","Heliwaa","Dayniile","Dharkenley","Kaxda","Karaan","Gubadley","Garasbaaley"];
 function patientTemplate(idx, data={}){
   const rv = data.returning; // '' = wali lama dooran, 'yes'/'no'
-  return `<div class="patient-block" data-idx="${idx}">${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Remove">✕</button>` : ''}<label>Magaca oo dhamaystiran ${idx>0?'(Xubinta '+(idx+1)+')':''}</label><input type="text" class="p-name" placeholder="Tusaale: Cali Xasan Mohamed" value="${escapeHtml(data.name||'')}" oninput="this.value=this.value.toUpperCase()"><div class="row2"><div><label>Lambarka Telefoonka</label><input type="tel" class="p-phone" placeholder="06XXXXXXXX" value="${escapeHtml(data.phone||'')}" inputmode="tel"></div><div><label>Da'da (Age)</label><input type="number" min="0" max="120" class="p-age" placeholder="Tusaale: 28" value="${escapeHtml(data.age||'')}" inputmode="numeric"></div></div><div class="row2"><div><label>Gender</label><select class="p-gender"><option value="Lab" ${data.gender==='Lab'?'selected':''}>Lab (Male)</option><option value="Dumar" ${data.gender==='Dumar'?'selected':''}>Dumar (Female)</option></select></div><div><label>Degmada</label><select class="p-degmada"><option value="">-- Dooro Degmada --</option>${DEGMO_LIST.map(d=>`<option value="${d}" ${data.degmada===d?'selected':''}>${d}</option>`).join('')}</select></div></div><label>HORAY MA UYIMADAY QAFKA NUMBER-KA LORABO?</label><div class="btn-row" style="gap:8px;"><button type="button" class="btn ${rv==='yes'?'btn-success':'btn-outline'} btn-sm returning-toggle" data-val="yes" style="flex:1;" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="btn ${rv==='no'?'btn-success':'btn-outline'} btn-sm returning-toggle" data-val="no" style="flex:1;" onclick="setReturning(${idx},'no',this)">➕ Maya</button></div></div>`;
+  return `<div class="patient-block" data-idx="${idx}">${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Remove">✕</button>` : ''}<label>Magaca oo dhamaystiran ${idx>0?'(Xubinta '+(idx+1)+')':''}</label><input type="text" class="p-name" placeholder="Tusaale: Cali Xasan Mohamed" value="${escapeHtml(data.name||'')}" oninput="this.value=this.value.toUpperCase()"><div class="row2"><div><label>Lambarka Telefoonka</label><input type="tel" class="p-phone" placeholder="06XXXXXXXX" value="${escapeHtml(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)"></div><div><label>Da'da (Age)</label><input type="number" min="0" max="120" class="p-age" placeholder="Tusaale: 28" value="${escapeHtml(data.age||'')}" inputmode="numeric"></div></div><div class="row2"><div><label>Gender</label><select class="p-gender"><option value="Lab" ${data.gender==='Lab'?'selected':''}>Lab (Male)</option><option value="Dumar" ${data.gender==='Dumar'?'selected':''}>Dumar (Female)</option></select></div><div><label>Degmada</label><select class="p-degmada"><option value="">-- Dooro Degmada --</option>${DEGMO_LIST.map(d=>`<option value="${d}" ${data.degmada===d?'selected':''}>${d}</option>`).join('')}</select></div></div><label>HORAY MA UYIMADAY QAFKA NUMBER-KA LORABO?</label><div class="btn-row" style="gap:8px;"><button type="button" class="btn ${rv==='yes'?'btn-success':'btn-outline'} btn-sm returning-toggle" data-val="yes" style="flex:1;" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="btn ${rv==='no'?'btn-success':'btn-outline'} btn-sm returning-toggle" data-val="no" style="flex:1;" onclick="setReturning(${idx},'no',this)">➕ Maya</button></div></div>`;
 }
 function setReturning(idx, val, btnEl){
   if(state.patients[idx]) state.patients[idx].returning = val;
@@ -1447,6 +1457,30 @@ function normalizePatientName(name){
   };
   return name.trim().toUpperCase().replace(/[A-Z]+/g, word => commonSpellings[word] || word);
 }
+function loadPatientHistory(idx, phone){
+  const digits = String(phone||'').replace(/\D/g,'');
+  if(digits.length < 7) return;
+  const block = document.querySelector(`.patient-block[data-idx="${idx}"]`);
+  if(!block || block.dataset.historyLoaded === digits) return;
+  const matches = load(APPTS_KEY, []).flatMap(appointment => (appointment.patients||[]).map(patient=>({patient, createdAt:appointment.createdAt})))
+    .filter(entry=>String(entry.patient.phone||'').replace(/\D/g,'') === digits)
+    .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const saved = matches[0]?.patient;
+  if(!saved) return;
+  block.dataset.historyLoaded = digits;
+  const fields = [['.p-name','name'],['.p-age','age'],['.p-gender','gender'],['.p-degmada','degmada']];
+  fields.forEach(([selector,key])=>{
+    const field = block.querySelector(selector);
+    if(field && (!field.value || selector === '.p-gender' && field.value === 'Lab') && saved[key]) field.value = saved[key];
+  });
+  const returning = state.patients[idx];
+  if(returning && !returning.returning) returning.returning = 'yes';
+  block.querySelectorAll('.returning-toggle').forEach(button=>{
+    const active = button.dataset.val === 'yes';
+    button.classList.toggle('btn-success', active);
+    button.classList.toggle('btn-outline', !active);
+  });
+}
 function collectPatientsFromDOM(){
   const blocks = document.querySelectorAll('.patient-block');
   const list = [];
@@ -1465,6 +1499,7 @@ function validateStep2(silent){
 /* ==================== QUEUE SCHEDULING ==================== */
 const OPEN_HOUR = 8, CLOSE_HOUR = 19, SLOT_MINUTES = 15;
 function toISODate(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+function getTodayEatDate(){ return new Date(getEffectiveNow().getTime()+3*60*60*1000).toISOString().slice(0,10); }
 function countQueueForDay(doctorKey, dateStr){ const all = load(APPTS_KEY, []); return all.filter(a=>a.doctorKey===doctorKey && a.date===dateStr && a.status!=='Cancelled').length; }
 /* CILAD LA HAGAAJIYAY (race condition): xisaabinta hore ee lambarka safka
    (computeAssignedSlot) waxay ku salaysnayd XOG LOCAL AH — haddii labo
@@ -1567,11 +1602,14 @@ async function fastPushBooking(appt){
     const { error: retryError } = await DB.client.from('online_bookings').upsert(bookingRow, {onConflict:'id'});
     if(retryError) throw retryError;
   }
-  const patientRows = (appt.patients||[]).map(p=>({ booking_id:appt.id, name:p.name, phone:p.phone||null, age:p.age||null, gender:p.gender||null, degmada:p.degmada||null, is_returning:p.returning||null }));
-  if(patientRows.length) await DB.client.from('online_booking_patients').insert(patientRows);
+  await ensureBookingPatients(appt);
 }
 
 async function confirmBooking(){
+  if(bookingSubmissionInProgress) return;
+  bookingSubmissionInProgress = true;
+  const confirmButton = document.getElementById('confirmBtn');
+  if(confirmButton) confirmButton.disabled = true;
   // ILAALIN DHEERAAD AH: xitaa haddii UI-ga (kaadhka xidhan) la boobo,
   // marnaba booking lama dhammaystiri karo intii dhakhaatiirtu xidhan
   // yihiin (jadwal ahaan ama admin override) — waqtiga server-ka ayaa
@@ -1579,6 +1617,8 @@ async function confirmBooking(){
   await syncServerTime();
   const lockCheck = getLockState();
   if(lockCheck.locked){
+    bookingSubmissionInProgress = false;
+    if(confirmButton) confirmButton.disabled = false;
     Swal.fire({ icon:'warning', title:'Dalabka Online-ka Wuu Xidhan Yahay', text:'Xilligan dalabyadu waa xidhan yihiin (6:30 PM – 10:00 PM). Fadlan isku day mar kale 10:00 PM ka dib.' });
     return;
   }
@@ -1652,6 +1692,7 @@ async function confirmBooking(){
 
   // ===== 3) SHOW CONFIRMATION (cod ku sheeg, ID/Safka lama muujiyo) =====
   showConfirmation(appt);
+  bookingSubmissionInProgress = false;
 }
 
 function showConfirmation(appt){
@@ -1668,6 +1709,8 @@ function showConfirmation(appt){
 function resetBooking(){
   state = {doctorKey:null, patients:[], date:"", time:"", queueNumber:null, familyCardVerified:false};
   currentApptId = null;
+  bookingSubmissionInProgress = false;
+  document.getElementById('confirmBtn').disabled = false;
   renderDoctorGrid();
   document.getElementById('toStep2Btn').disabled = true;
   goStep(1);
@@ -1954,18 +1997,21 @@ function closeScanner(){ document.getElementById('qrModal').classList.remove('ac
 function tryAdminLogin(){
   const val = document.getElementById('adminPinInput').value.trim();
   const stored = load(ADMIN_PIN_KEY, "ANAANI321");
-  if(val === stored){ sessionStorage.setItem('bh_admin_logged','1'); document.getElementById('view-admin-login').classList.remove('active'); document.getElementById('view-admin-dashboard').classList.add('active'); if(!knownBookingIds) initKnownBookingIds(); renderAdminTable(); updateSyncUI(); refreshFromSupabase(); toast("✅ Admin login guuleystay!"); }
+  if(val === stored){ sessionStorage.setItem('bh_admin_logged','1'); knownBookingIds = null; document.getElementById('view-admin-login').classList.remove('active'); document.getElementById('view-admin-dashboard').classList.add('active'); renderAdminTable(); updateSyncUI(); refreshFromSupabase(); toast("✅ Admin login guuleystay!"); }
   else { toast("❌ PIN khalad ah. Isku day mar kale."); document.getElementById('adminPinInput').value=''; document.getElementById('adminPinInput').focus(); }
 }
 function adminLogout(){ sessionStorage.removeItem('bh_admin_logged'); document.getElementById('adminPinInput').value = ''; switchMode('admin'); toast("👋 Admin waa laga baxay."); }
 function renderAdminTable(){
   const all = load(APPTS_KEY, []); const q = (document.getElementById('searchInput')?.value || '').toLowerCase(); const statusF = document.getElementById('statusFilter')?.value || '';
-  const filtered = all.filter(a=>{ const patients = getAppointmentPatients(a); const status = getAppointmentStatus(a); const matchesQ = !q || patients.some(p=>(p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q)) || a.id.toLowerCase().includes(q); const matchesS = !statusF || status===statusF; return matchesQ && matchesS; });
+  const today = getTodayEatDate();
+  const dateF = document.getElementById('dateFilter')?.value || 'today';
+  const todayRecords = all.filter(a=>a.date===today);
+  const filtered = all.filter(a=>{ const patients = getAppointmentPatients(a); const status = getAppointmentStatus(a); const matchesQ = !q || patients.some(p=>(p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q)) || a.id.toLowerCase().includes(q); const matchesS = !statusF || status===statusF; const matchesDate = dateF==='all' || a.date===today; return matchesQ && matchesS && matchesDate; });
   const patientCount = records => records.reduce((total, appointment)=>total + getAppointmentPatients(appointment).length, 0);
-  document.getElementById('statTotal').textContent = patientCount(all);
-  document.getElementById('statPaid').textContent = patientCount(all.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }));
-  document.getElementById('statPending').textContent = patientCount(all.filter(a=>getAppointmentStatus(a)==='Pending'));
-  document.getElementById('statRevenue').textContent = '$' + all.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }).reduce((s,a)=>s+a.fee,0);
+  document.getElementById('statTotal').textContent = patientCount(todayRecords);
+  document.getElementById('statPaid').textContent = patientCount(todayRecords.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }));
+  document.getElementById('statPending').textContent = patientCount(todayRecords.filter(a=>getAppointmentStatus(a)==='Pending'));
+  document.getElementById('statRevenue').textContent = '$' + todayRecords.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }).reduce((s,a)=>s+(Number(a.fee)||0),0);
   renderCardRefsTable();
   const body = document.getElementById('adminTableBody'); body.innerHTML = '';
   document.getElementById('adminEmpty').style.display = filtered.length ? 'none':'block';
