@@ -815,6 +815,31 @@ async function upsertSyncParent(table, rows, idKey){
     if(error) throw error;
   }
 }
+async function fetchAllSyncRows(table){
+  const pageSize = 1000;
+  const rows = [];
+  for(let offset=0;;offset+=pageSize){
+    const { data, error } = await DB.client.from(table).select('*').range(offset, offset+pageSize-1);
+    if(error) throw error;
+    rows.push(...(data||[]));
+    if(!data || data.length<pageSize) return rows;
+  }
+}
+function countUniquePatients(appointments){
+  const identities = new Set();
+  appointments.forEach(appointment=>(appointment.patients||[]).forEach(patient=>{
+    const name = String(patient.name||'').trim().toUpperCase().replace(/\s+/g,' ');
+    const phoneDigits = String(patient.phone||'').replace(/\D/g,'');
+    const phone = phoneDigits.startsWith('252') ? '0'+phoneDigits.slice(3) : phoneDigits;
+    if(!name && !phone) return;
+    if(!name || name === 'BUKAAN AAN XOGTIISU DHAMAYSTIRNAYN') return;
+    const identity = phone
+      ? `${name}|${phone}`
+      : `${name}|${String(patient.age||'').trim()}|${String(patient.gender||'').trim().toUpperCase()}`;
+    identities.add(identity);
+  }));
+  return identities.size;
+}
 async function ensureBookingPatients(appt){
   if(!appt || !appt.id || !Array.isArray(appt.patients) || !appt.patients.length) return;
   if(bookingPatientPushes.has(appt.id)) return bookingPatientPushes.get(appt.id);
@@ -847,15 +872,13 @@ async function replaceChildRows(childTable, parentIdField, parentIds, childRows)
 const ENTITY_ADAPTERS = {
   bh_appointments: { tables:['online_bookings','online_booking_patients'],
     async pull(){
-      const { data: bookings, error: e1 } = await DB.client.from('online_bookings').select('*');
-      if(e1) throw e1;
-      const { data: patients, error: e2 } = await DB.client.from('online_booking_patients').select('*');
-      if(e2) throw e2;
-      return (bookings||[]).map(b=>({
+      const bookings = await fetchAllSyncRows('online_bookings');
+      const patients = await fetchAllSyncRows('online_booking_patients');
+      return bookings.map(b=>({
         id:b.id, createdAt:b.created_at, doctorKey:b.doctor_key, doctorName:b.doctor_name, department:b.department,
         date:b.date, time:b.time, queueNumber:b.queue_number, fee:Number(b.fee)||0, status:b.status, orderType:b.order_type||getOrderType(b.created_at),
         paymentMethod:b.payment_method||'', paidAt:b.paid_at||undefined,
-        patients:(patients||[]).filter(p=>p.booking_id===b.id).map(p=>({name:p.name, phone:p.phone||'', age:p.age||'', gender:p.gender||'', degmada:p.degmada||'', returning:p.is_returning||''}))
+        patients:patients.filter(p=>p.booking_id===b.id).map(p=>({name:p.name, phone:p.phone||'', age:p.age||'', gender:p.gender||'', degmada:p.degmada||'', returning:p.is_returning||''}))
       })).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
     },
     async push(records){
@@ -2008,7 +2031,7 @@ function renderAdminTable(){
   const todayRecords = all.filter(a=>a.date===today);
   const filtered = all.filter(a=>{ const patients = getAppointmentPatients(a); const status = getAppointmentStatus(a); const matchesQ = !q || patients.some(p=>(p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q)) || a.id.toLowerCase().includes(q); const matchesS = !statusF || status===statusF; const matchesDate = dateF==='all' || a.date===today; return matchesQ && matchesS && matchesDate; });
   const patientCount = records => records.reduce((total, appointment)=>total + getAppointmentPatients(appointment).length, 0);
-  document.getElementById('statTotal').textContent = patientCount(todayRecords);
+  document.getElementById('statTotal').textContent = countUniquePatients(all);
   document.getElementById('statPaid').textContent = patientCount(todayRecords.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }));
   document.getElementById('statPending').textContent = patientCount(todayRecords.filter(a=>getAppointmentStatus(a)==='Pending'));
   document.getElementById('statRevenue').textContent = '$' + todayRecords.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }).reduce((s,a)=>s+(Number(a.fee)||0),0);
