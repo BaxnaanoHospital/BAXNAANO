@@ -1994,10 +1994,10 @@ function deleteCardRef(id){
 function closeScanner(){ document.getElementById('qrModal').classList.remove('active'); if(qrRAF){ cancelAnimationFrame(qrRAF); qrRAF=null; } if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream=null; } }
 
 /* ==================== ADMIN ==================== */
-function tryAdminLogin(){
+async function tryAdminLogin(){
   const val = document.getElementById('adminPinInput').value.trim();
   const stored = load(ADMIN_PIN_KEY, "ANAANI321");
-  if(val === stored){ sessionStorage.setItem('bh_admin_logged','1'); knownBookingIds = null; document.getElementById('view-admin-login').classList.remove('active'); document.getElementById('view-admin-dashboard').classList.add('active'); renderAdminTable(); updateSyncUI(); refreshFromSupabase(); toast("✅ Admin login guuleystay!"); }
+  if(val === stored){ sessionStorage.setItem('bh_admin_logged','1'); knownBookingIds = null; document.getElementById('view-admin-login').classList.remove('active'); document.getElementById('view-admin-dashboard').classList.add('active'); renderAdminTable(); updateSyncUI(); await refreshFromSupabase(); renderAdminTable(); toast("✅ Admin login guuleystay!"); }
   else { toast("❌ PIN khalad ah. Isku day mar kale."); document.getElementById('adminPinInput').value=''; document.getElementById('adminPinInput').focus(); }
 }
 function adminLogout(){ sessionStorage.removeItem('bh_admin_logged'); document.getElementById('adminPinInput').value = ''; switchMode('admin'); toast("👋 Admin waa laga baxay."); }
