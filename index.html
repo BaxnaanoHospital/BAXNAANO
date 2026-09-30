@@ -2031,10 +2031,17 @@ function renderAdminTable(){
   const todayRecords = all.filter(a=>a.date===today);
   const filtered = all.filter(a=>{ const patients = getAppointmentPatients(a); const status = getAppointmentStatus(a); const matchesQ = !q || patients.some(p=>(p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q)) || a.id.toLowerCase().includes(q); const matchesS = !statusF || status===statusF; const matchesDate = dateF==='all' || a.date===today; return matchesQ && matchesS && matchesDate; });
   const patientCount = records => records.reduce((total, appointment)=>total + getAppointmentPatients(appointment).length, 0);
+  const metricRecords = dateF==='all' ? all : todayRecords;
+  const uniqueMetricBookings = [...new Map(metricRecords.filter(a=>a.id).map(a=>[a.id,a])).values()];
+  const paidBookings = uniqueMetricBookings.filter(a=>{
+    const status = String(a.status||'').trim().toLowerCase();
+    return (status==='paid'||status==='completed') && Boolean(a.paidAt||a.paymentMethod);
+  });
+  const pendingBookings = uniqueMetricBookings.filter(a=>String(a.status||'').trim().toLowerCase()==='pending');
   document.getElementById('statTotal').textContent = countUniquePatients(all);
-  document.getElementById('statPaid').textContent = patientCount(todayRecords.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }));
-  document.getElementById('statPending').textContent = patientCount(todayRecords.filter(a=>getAppointmentStatus(a)==='Pending'));
-  document.getElementById('statRevenue').textContent = '$' + todayRecords.filter(a=>{ const status = getAppointmentStatus(a); return status==='Paid'||status==='Completed'; }).reduce((s,a)=>s+(Number(a.fee)||0),0);
+  document.getElementById('statPaid').textContent = paidBookings.length;
+  document.getElementById('statPending').textContent = '$' + pendingBookings.reduce((sum,a)=>sum+(Number(a.fee)||0),0);
+  document.getElementById('statRevenue').textContent = '$' + paidBookings.reduce((sum,a)=>sum+(Number(a.fee)||0),0);
   renderCardRefsTable();
   const body = document.getElementById('adminTableBody'); body.innerHTML = '';
   document.getElementById('adminEmpty').style.display = filtered.length ? 'none':'block';
