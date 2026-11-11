@@ -875,6 +875,30 @@ const SUPABASE_ANON_KEY = 'sb_publishable_exzgU4lfqJpzI89f8Jjl7w_5vT2d4NR';
 function isAdminSession(){ return APP_PAGE === 'admin' && sessionStorage.getItem('bh_admin_logged') === '1'; }
 function canPullEntity(key){ return key === ANNOUNCE_KEY || key === DOCTORS_KEY || isAdminSession(); }
 
+
+/* ---- Delta sync: kaliya waxa isbeddelay ayaa Supabase loo diraa ---- */
+const SYNC_SIG_KEY = 'bh_sync_sigs_v1';
+let _syncSigs = (()=>{ try{ return JSON.parse(localStorage.getItem(SYNC_SIG_KEY)) || {}; }catch(e){ return {}; } })();
+let _sigSaveTimer = null;
+function saveSyncSigs(){ clearTimeout(_sigSaveTimer); _sigSaveTimer = setTimeout(()=>{ try{ localStorage.setItem(SYNC_SIG_KEY, JSON.stringify(_syncSigs)); }catch(e){} }, 300); }
+const _ts = v => { const t = v ? new Date(v).getTime() : 0; return Number.isFinite(t) ? t : String(v||''); };
+const SYNC_ID = { bh_appointments: r=>r && r.id, bh_cards: r=>r && r.cardId, bh_card_refs: r=>r && r.id };
+const SYNC_SIG = {
+  bh_appointments: a=>hashStr(JSON.stringify([a.doctorKey||null, a.doctorName||null, a.department||null, a.date||null, String(a.time||'').slice(0,5), a.queueNumber ?? null, Number(a.fee)||0, getAppointmentStatus(a), a.paymentMethod||null, _ts(a.paidAt), _ts(a.createdAt)])),
+  bh_cards: c=>hashStr(JSON.stringify([c.name||'', c.phone||'', c.degmada||'', c.gender||'', String(c.age||'')])),
+  bh_card_refs: r=>hashStr(JSON.stringify([r.qrValue||'', (r.photo||'').length, r.aspectRatio||null]))
+};
+function markSynced(key, records){
+  const idOf = SYNC_ID[key], sig = SYNC_SIG[key]; if(!idOf || !Array.isArray(records)) return;
+  records.forEach(r=>{ const id = idOf(r); if(id) _syncSigs[key+':'+id] = sig(r); });
+  saveSyncSigs();
+}
+function changedRecords(key, records){
+  const idOf = SYNC_ID[key], sig = SYNC_SIG[key];
+  if(!idOf || !Array.isArray(records)) return records;
+  return records.filter(r=>{ const id = idOf(r); return id && _syncSigs[key+':'+id] !== sig(r); });
+}
+
 function safeApplyPull(key, records){
   if(key === DOCTORS_KEY){
     if(!Array.isArray(records) || !records.length) return;
@@ -889,6 +913,7 @@ function safeApplyPull(key, records){
   const deletedIds = key === APPTS_KEY ? new Set(load(DELETED_APPTS_KEY, [])) : new Set();
   if(key === APPTS_KEY) records = records.filter(r => !deletedIds.has(r.id));
   if(!Array.isArray(existing) || !Array.isArray(records)){
+    if(Array.isArray(records)) markSynced(key, records);
     localStorage.setItem(key, JSON.stringify(records));
     if(key === APPTS_KEY) localStorage.setItem(APPTS_BACKUP_KEY, JSON.stringify(records));
     return;
@@ -904,6 +929,7 @@ function safeApplyPull(key, records){
     if(key === APPTS_KEY && previous && previous.patients?.length && !record.patients?.length) m.patients = previous.patients;
     return m;
   });
+  markSynced(key, merged.filter(r=>!(key === APPTS_KEY && pendingAppointmentWrites.has(identity(r)))));
   existing.forEach(record => {
     const id = identity(record);
     if(id && deletedIds.has(id)) return;
@@ -981,7 +1007,7 @@ const ENTITY_ADAPTERS = {
         if(!String(error.message||error).toLowerCase().includes('order_type')) throw error;
         await upsertSyncParent('online_bookings', rows.map(({order_type, ...row})=>row));
       }
-      for(const a of records) await ensureBookingPatients(a);
+      for(const a of records){ if(!_syncSigs[APPTS_KEY+':'+a.id]) await ensureBookingPatients(a); }
     }
   },
   bh_cards: { tables:['family_cards'],
@@ -1110,8 +1136,16 @@ const DB = {
     const adapter = ENTITY_ADAPTERS[key]; if(!adapter) return;
     this._persistQueue = this._persistQueue.then(async ()=>{
       try{
-        await Promise.race([ adapter.push(data), new Promise((_,rej)=>setTimeout(()=>rej(new Error('Persist timeout (15s)')), 15000)) ]);
-        if(key === APPTS_KEY && Array.isArray(data)) data.forEach(r=>{ if(r && r.id && pendingAppointmentWrites.get(r.id) === JSON.stringify(r)) pendingAppointmentWrites.delete(r.id); });
+        const isList = Array.isArray(data) && SYNC_ID[key];
+        const todo = isList ? changedRecords(key, data) : data;
+        if(isList && !todo.length) return;
+        const BATCH = 50;
+        const batches = isList ? Array.from({length: Math.ceil(todo.length/BATCH)}, (_,i)=>todo.slice(i*BATCH, (i+1)*BATCH)) : [todo];
+        for(const batch of batches){
+          await Promise.race([ adapter.push(batch), new Promise((_,rej)=>setTimeout(()=>rej(new Error('Supabase si degdeg ah uma jawaabin (30s) — hubi internet-ka')), 30000)) ]);
+          if(isList) markSynced(key, batch);
+          if(key === APPTS_KEY && isList) batch.forEach(r=>{ if(r && r.id && pendingAppointmentWrites.get(r.id) === JSON.stringify(r)) pendingAppointmentWrites.delete(r.id); });
+        }
         if(this.status === 'error'){ this.status = 'connected'; this.lastError = null; updateSyncUI(); }
       }catch(err){ this.status='error'; this.lastError = err.message||String(err); updateSyncUI(); console.warn('Supabase persist failed', key, err); }
     });
@@ -1523,6 +1557,7 @@ async function fastPushBooking(appt){
     if(e2) throw e2;
   }
   await ensureBookingPatients(appt);
+  markSynced(APPTS_KEY, [appt]);
 }
 async function confirmBooking(){
   if(bookingSubmissionInProgress) return;
@@ -1545,7 +1580,7 @@ async function confirmBooking(){
   const createdAt = getEffectiveNow().toISOString();
   const doc = DOCTORS[state.doctorKey];
   const appt = { id: uid("BH"), createdAt, orderType: getOrderType(createdAt), doctorKey: state.doctorKey, doctorName: doc.name, department: doc.dept,
-    patients: state.patients, date: state.date, time: state.time, queueNumber: state.queueNumber, fee, status:"Paid", paymentMethod:"USSD", paidAt: new Date().toISOString() };
+    patients: state.patients, date: state.date, time: state.time, queueNumber: state.queueNumber, fee, status:"Pending", paymentMethod:"USSD", paidAt: null };
   const all = load(APPTS_KEY, []); all.unshift(appt);
   localStorage.setItem(APPTS_KEY, JSON.stringify(all)); localStorage.setItem(APPTS_BACKUP_KEY, JSON.stringify(all));
   currentApptId = appt.id;
