@@ -445,13 +445,14 @@
   @keyframes payPulse{0%,100%{box-shadow:0 6px 16px rgba(17,154,106,.26),0 0 0 0 rgba(19,166,115,.55);transform:scale(1)}50%{box-shadow:0 6px 16px rgba(17,154,106,.26),0 0 0 14px rgba(19,166,115,0);transform:scale(1.03)}}
   @media (prefers-reduced-motion:reduce){.pay-row.nudge .btn-success,.pay-hint .hand{animation:none!important}}
 
-  /* Caawimaad yar */
-  #wstep-2 .fw label{display:flex;align-items:center;gap:6px}
-  .tip-q{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--brand);background:#fff;color:var(--brand);font-size:13px;font-weight:700;line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
-  .fw .tip{display:none;margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--brand-soft);color:var(--brand-ink);font-size:14px;line-height:1.4;font-weight:500}
-  .fw.show-tip .tip{display:block;animation:viewIn .25s var(--ease) both}
-  .fw.tip-err .tip{background:#fff0f0;color:#b42318}
+  /* Meesha u dhiman — animation */
   #wstep-2 .f-err{border-color:#e5484d!important;box-shadow:0 0 0 4px rgba(229,72,77,.18)!important}
+  .miss-hint{margin:14px 0 -6px;font-size:16px;font-weight:600;color:#b45309;animation:viewIn .3s var(--ease) both}
+  .miss-hint .hand{display:inline-block;animation:handBob .8s ease-in-out infinite}
+  #wstep-2 .nudge-field{animation:fieldPulse 1.3s ease-in-out infinite;border-color:#f59e0b!important;border-radius:14px}
+  #wstep-2 .btn-primary.nudge-next{animation:payPulse 1.4s ease-in-out infinite,btnFlow 6s ease-in-out infinite}
+  @keyframes fieldPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.55)}50%{box-shadow:0 0 0 10px rgba(245,158,11,0)}}
+  @media (prefers-reduced-motion:reduce){#wstep-2 .nudge-field,.miss-hint .hand{animation:none!important}}
 </style>
 </head>
 <body>
@@ -1491,17 +1492,17 @@ function patientTemplate(idx, data={}){
   const rv = data.returning, s = getSettings();
   return `<div class="patient-block" data-idx="${idx}">
     <div class="pb-h"><span>${idx>0 ? 'Xubinta '+(idx+1) : 'Bukaanka'}</span>${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Ka saar">✕</button>` : ''}</div>
-    <div class="fw"><label>Magaca oo dhamaystiran <button type="button" class="tip-q" onclick="toggleTip(this)" aria-label="Caawimaad">?</button></label><input type="text" class="p-name" placeholder="Tusaale: Cali Xasan Mohamed" value="${escAttr(data.name||'')}" oninput="this.value=this.value.toUpperCase()" autocomplete="name"><div class="tip">✍️ Qor magaca bukaanka oo dhan (3 magac). Tusaale: CALI XASAN MAXAMED</div></div>
+    <div class="fw"><label>Magaca oo dhamaystiran</label><input type="text" class="p-name" placeholder="Tusaale: Cali Xasan Mohamed" value="${escAttr(data.name||'')}" oninput="this.value=this.value.toUpperCase()" autocomplete="name"></div>
     <div class="row2">
-      <div class="fw"><label>Telefoonka <button type="button" class="tip-q" onclick="toggleTip(this)" aria-label="Caawimaad">?</button></label><input type="tel" class="p-phone" placeholder="06XXXXXXXX" value="${escAttr(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)"><div class="tip">📞 Lambarka aad lacagta ka bixinayso. Tusaale: 0615123456</div></div>
-      <div class="fw"><label>Da'da <button type="button" class="tip-q" onclick="toggleTip(this)" aria-label="Caawimaad">?</button></label>${ageFieldHTML(idx, data.age)}<div class="tip">🎂 Qor da'da (tusaale: 70) ama sanadka dhalashada (1955). Ilmo yar → riix Bil ama Maalin.</div></div>
+      <div class="fw"><label>Telefoonka</label><input type="tel" class="p-phone" placeholder="06XXXXXXXX" value="${escAttr(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)"></div>
+      <div class="fw"><label>Da'da</label>${ageFieldHTML(idx, data.age)}</div>
     </div>
     <div class="row2">
-      <div class="fw"><label>Jinsiga <button type="button" class="tip-q" onclick="toggleTip(this)" aria-label="Caawimaad">?</button></label><select class="p-gender"><option value="Lab" ${data.gender==='Lab'?'selected':''}>Lab (Male)</option><option value="Dumar" ${data.gender==='Dumar'?'selected':''}>Dumar (Female)</option></select><div class="tip">👨 Lab ama 👩 Dumar — riix oo dooro.</div></div>
-      <div class="fw"><label>Degmada <button type="button" class="tip-q" onclick="toggleTip(this)" aria-label="Caawimaad">?</button></label><select class="p-degmada"><option value="">-- Dooro --</option>${s.districts.map(d=>`<option value="${escAttr(d)}" ${data.degmada===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select><div class="tip">📍 Riix oo dooro degmada bukaanku ku nool yahay.</div></div>
+      <div class="fw"><label>Jinsiga</label><select class="p-gender"><option value="Lab" ${data.gender==='Lab'?'selected':''}>Lab (Male)</option><option value="Dumar" ${data.gender==='Dumar'?'selected':''}>Dumar (Female)</option></select></div>
+      <div class="fw"><label>Degmada</label><select class="p-degmada"><option value="">-- Dooro --</option>${s.districts.map(d=>`<option value="${escAttr(d)}" ${data.degmada===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select></div>
     </div>
-    <div class="fw"><label>Horay ma u timid isbitaalka? <button type="button" class="tip-q" onclick="toggleTip(this)" aria-label="Caawimaad">?</button></label>
-    <div class="seg"><button type="button" class="${rv==='yes'?'on':''}" data-val="yes" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="${rv==='no'?'on':''}" data-val="no" onclick="setReturning(${idx},'no',this)">➕ Maya, waa markii u horreysay</button></div><div class="tip">✅ Haa = hore ayuu u yimid isbitaalka · ➕ Maya = waa markii ugu horreysay.</div></div>
+    <div class="fw"><label>Horay ma u timid isbitaalka?</label>
+    <div class="seg"><button type="button" class="${rv==='yes'?'on':''}" data-val="yes" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="${rv==='no'?'on':''}" data-val="no" onclick="setReturning(${idx},'no',this)">➕ Maya, waa markii u horreysay</button></div></div>
   </div>`;
 }
 /* ---------- Da'da: sano / bil / maalin + sanadka dhalashada ---------- */
@@ -1543,17 +1544,43 @@ function setAgeInput(inp, age){
   const a = parseAge(age); inp.value = a.n; inp.dataset.unit = a.u;
   inp.parentNode.querySelectorAll('.age-units button').forEach(b=>b.classList.toggle('on', b.dataset.u===a.u));
 }
-/* ---------- Caawimaad yar — waxay soo baxdaa marka loo baahdo ---------- */
-function toggleTip(btn){ const fw = btn.closest('.fw'); fw.classList.toggle('show-tip'); }
 function showFieldError(el, msg){
-  const fw = el.closest('.fw'); if(fw){ fw.classList.add('show-tip','tip-err'); }
   el.classList.add('f-err'); el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.focus(),350);
-  const clear = ()=>{ el.classList.remove('f-err'); if(fw) fw.classList.remove('tip-err','show-tip'); };
+  const clear = ()=>el.classList.remove('f-err');
   el.addEventListener('input', clear, {once:true}); el.addEventListener('change', clear, {once:true});
   toast(msg); return false;
 }
-document.addEventListener('focusin', e=>{ const fw = e.target.closest && e.target.closest('#patientsWrap .fw'); if(fw && !e.target.classList.contains('tip-q')) fw.classList.add('show-tip'); });
-document.addEventListener('focusout', e=>{ const fw = e.target.closest && e.target.closest('#patientsWrap .fw'); if(fw && !fw.classList.contains('tip-err')) setTimeout(()=>{ if(!fw.contains(document.activeElement)) fw.classList.remove('show-tip'); }, 150); });
+/* ---------- Haddii qofku daaho: tus meesha u dhiman (animation) ---------- */
+const IDLE_MS = 4000;
+function clearMissingNudge(){
+  document.querySelectorAll('#wstep-2 .nudge-field').forEach(e=>e.classList.remove('nudge-field'));
+  document.querySelectorAll('#wstep-2 .miss-hint').forEach(e=>e.remove());
+  const nb = document.querySelector('#wstep-2 .btn-primary'); if(nb) nb.classList.remove('nudge-next');
+}
+function findMissing(){
+  for(const b of document.querySelectorAll('#patientsWrap .patient-block')){
+    const chk = [['.p-name','Magaca'],['.p-phone','Telefoonka'],['.p-age',"Da'da"],['.p-degmada','Degmada']];
+    for(const [sel,label] of chk){ const el = b.querySelector(sel); if(el && !String(el.value).trim()) return {el, label}; }
+    const ph = b.querySelector('.p-phone'); if(ph && ph.value.replace(/\D/g,'').length < 7) return {el:ph, label:'Telefoonka (waa gaaban yahay)'};
+    const seg = b.querySelector('.seg'); if(seg && !seg.querySelector('button.on')) return {el:seg, label:'Horay ma u timid?'};
+  }
+  return null;
+}
+function showMissingNudge(){
+  if(currentStep !== 2 || !$('view-booking').classList.contains('active')) return;
+  clearMissingNudge();
+  const m = findMissing();
+  if(!m){ const nb = document.querySelector('#wstep-2 .btn-primary'); if(nb){ nb.classList.add('nudge-next'); const h = document.createElement('div'); h.className = 'miss-hint'; h.innerHTML = '<span class="hand">👇</span> Waa dhammaatay — riix <b>Sii wad</b>'; nb.closest('.btn-row').before(h); h.scrollIntoView({behavior:'smooth',block:'center'}); } return; }
+  const h = document.createElement('div'); h.className = 'miss-hint'; h.innerHTML = `<span class="hand">👇</span> Waxaa ka dhiman: <b>${escapeHtml(m.label)}</b>`;
+  const anchor = m.el.closest('.age-wrap') || m.el; const lbl = anchor.parentNode.querySelector('label') || anchor;
+  lbl.before(h); m.el.classList.add('nudge-field');
+  m.el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function resetIdleNudge(){
+  clearTimeout(window._idleNudge); clearMissingNudge();
+  if(currentStep === 2) window._idleNudge = setTimeout(showMissingNudge, IDLE_MS);
+}
+['input','change','click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev, e=>{ if(currentStep === 2 && e.target.closest && e.target.closest('#wstep-2')) resetIdleNudge(); }, {passive:true}));
 function setReturning(idx, val, btn){
   if(state.patients[idx]) state.patients[idx].returning = val;
   btn.closest('.seg').querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.val === val));
@@ -1726,6 +1753,7 @@ function goStep(n){
   $('heroCard').hidden = n !== 1;
   renderPickedDoctor();
   if(n===2) renderPatients();
+  clearTimeout(window._idleNudge); if(n===2) resetIdleNudge(); else clearMissingNudge();
   if(n===3) renderSummary();
   clearTimeout(window._payNudgeTimer); $('payRow').classList.remove('nudge');
   if(n===3) window._payNudgeTimer = setTimeout(()=>{ if(currentStep===3 && !bookingSubmissionInProgress) $('payRow').classList.add('nudge'); }, 3000);
