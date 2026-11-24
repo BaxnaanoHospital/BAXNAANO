@@ -481,6 +481,64 @@
   #wstep-2 .patient-block[data-idx="0"] .pb-h{display:none}
   #wstep-2 .fq{margin-top:12px}
   #wstep-2 .age-note:not(:empty)+*,#wstep-2 .fh:has(+.age-note:not(:empty)){display:none}
+
+  /* ===== Hal bog — qaybo kala dhigan, 2 dhinac ===== */
+  #wstep-2 .patient-block{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;border:none;box-shadow:none;background:transparent}
+  #wstep-2 .patient-block>.pb-h{grid-column:1/-1;margin:0}
+  #wstep-2 .fq{margin:0;padding:12px;border:2px solid var(--line);border-radius:18px;background:#fff;min-width:0}
+  #wstep-2 .fq-wide{grid-column:1/-1}
+  #wstep-2 .fq label{font-size:17px;gap:8px;margin-bottom:8px}
+  #wstep-2 .fn{width:26px;height:26px;font-size:14px}
+  #wstep-2 .fq input,#wstep-2 .fq select{font-size:19px;min-height:56px;padding:12px 14px}
+  #wstep-2 .fq select{padding-right:30px;background-position:right 10px center}
+  #wstep-2 .fq:not(.fq-wide) .fh{display:none}
+  #wstep-2 .age-units{gap:4px;margin-top:6px}
+  #wstep-2 .age-units button{font-size:14px;min-height:42px;padding:6px 2px;border-radius:10px}
+  #wstep-2 .g-seg{flex-direction:column;gap:6px}
+  #wstep-2 .g-seg button{min-height:52px;font-size:18px}
+  #wstep-2 .fq-wide .seg.big button{min-height:56px}
+  #wstep-2 .age-note{font-size:13px;margin-top:4px}
+  @media (max-width:340px){#wstep-2 .patient-block{grid-template-columns:1fr}}
+
+  #wstep-2 .card{padding-left:12px;padding-right:12px}
+  #wstep-2 .patient-block{padding:4px 0 8px;gap:8px}
+  #wstep-2 .fq{padding:10px}
+  #wstep-2 .fq label{font-size:16px;line-height:1.25}
+  #wstep-2 .fq input{font-size:18px;padding:10px 12px;min-height:54px}
+  #wstep-2 .fq select{font-size:18px;min-height:54px}
+  #wstep-2 .fq-deg{order:10}
+  #wstep-2 .g-seg,#wstep-2 .r-seg{flex-direction:column;gap:6px}
+  #wstep-2 .g-seg button,#wstep-2 .r-seg button{min-height:50px;font-size:18px;padding:8px}
+  #wstep-2 .age-units button{flex:1;min-width:0;font-size:13px;min-height:40px;padding:4px 0}
+
+  #wstep-2 .patient-block{grid-template-areas:"hd hd" "name name" "ph age" "deg age" "gen ret"}
+  #wstep-2 .patient-block>.pb-h{grid-area:hd}
+  #wstep-2 .fq-name{grid-area:name} #wstep-2 .fq-ph{grid-area:ph} #wstep-2 .fq-deg{grid-area:deg;order:0}
+  #wstep-2 .fq-age{grid-area:age} #wstep-2 .fq-gen{grid-area:gen} #wstep-2 .fq-ret{grid-area:ret}
+  #wstep-2 .patient-block[data-idx="0"]{grid-template-areas:"name name" "ph age" "deg age" "gen ret"}
+  #wstep-2 .g-seg,#wstep-2 .r-seg{flex-direction:row;gap:6px}
+  #wstep-2 .g-seg button,#wstep-2 .r-seg button{flex:1;min-width:0;flex-direction:column;display:flex;align-items:center;justify-content:center;gap:2px;min-height:62px;font-size:16px;padding:6px 2px;line-height:1.1}
+  #wstep-2 .be{font-size:20px;line-height:1}
+  #wstep-2 .fq-ret .fh{display:none}
+  #wstep-2 .fq-age .fh{display:block;font-size:12.5px;margin-top:6px}
+  #wstep-2 .fq-age .age-note:not(:empty)~.fh,#wstep-2 .fq-age .fh:has(~.age-note:not(:empty)){display:none}
+  #wstep-2 .fq-age .age-units{flex-direction:column}
+  #wstep-2 .fq-age .age-units button{min-height:38px;font-size:15px}
+  #wstep-2 .fq-deg select{font-size:16px;padding:10px 26px 10px 10px;background-position:right 8px center}
+  #wstep-2 .fq-ph input{font-size:17px;padding:10px}
+  @media (max-width:380px){#wstep-2 .picked{display:none}}
+  #wstep-2 .picked{display:none}
+
+  #wstep-2 .patient-block .seg.big.g-seg button,#wstep-2 .patient-block .seg.big.r-seg button{font-size:15px;min-height:56px;padding:4px 2px;border-width:2px}
+  #wstep-2 .fq label{margin-bottom:6px}
+  #wstep-2 .fq{padding:8px 10px 10px}
+  #wstep-2 .fq-age .age-units button{min-height:34px}
+  #wstep-2 .fc-opt>summary{padding:6px 0}
+  #wstep-2 .card{padding-top:10px;padding-bottom:10px}
+  #wstep-2 .btn-row{padding:6px;bottom:8px}
+  #wstep-2 .btn-row .btn{min-height:54px;padding:12px}
+  #wstep-2 .patient-block{padding-bottom:4px}
+  .stepper{margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -1522,26 +1580,25 @@ function patientTemplate(idx, data={}){
   return `<div class="patient-block" data-idx="${idx}">
     <div class="pb-h"><span>${idx>0 ? '👥 Xubinta '+(idx+1) : '👤 Bukaanka'}</span>${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Ka saar">✕</button>` : ''}</div>
 
-    <div class="fq"><label><span class="fn">1</span>Magaca bukaanka</label>
-    <input type="text" class="p-name" placeholder="Magaca oo dhan" value="${escAttr(data.name||'')}" oninput="this.value=this.value.toUpperCase()" autocomplete="name">
-    <div class="fh">Tusaale: CALI XASAN MAXAMED</div></div>
+    <div class="fq fq-wide fq-name"><label><span class="fn">1</span>Magaca bukaanka</label>
+    <input type="text" class="p-name" placeholder="Tusaale: CALI XASAN MAXAMED" value="${escAttr(data.name||'')}" oninput="this.value=this.value.toUpperCase()" autocomplete="name"></div>
 
-    <div class="fq"><label><span class="fn">2</span>📞 Lambarka telefoonka</label>
-    <input type="tel" class="p-phone" placeholder="061 234 5678" value="${escAttr(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)">
+    <div class="fq fq-ph"><label><span class="fn">2</span>Telefoon</label>
+    <input type="tel" class="p-phone" placeholder="061…" value="${escAttr(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)">
     <div class="fh">Lambarka lacagta laga bixinayo</div></div>
 
-    <div class="fq"><label><span class="fn">3</span>🎂 Da'da</label>
+    <div class="fq fq-age"><label><span class="fn">4</span>Da'da</label>
     ${ageFieldHTML(idx, data.age)}</div>
 
-    <div class="fq"><label><span class="fn">4</span>Lab mise Dumar?</label>
+    <div class="fq fq-gen"><label><span class="fn">5</span>Lab / Dumar</label>
     <select class="p-gender" hidden><option value="Lab" ${g==='Lab'?'selected':''}>Lab</option><option value="Dumar" ${g==='Dumar'?'selected':''}>Dumar</option></select>
-    <div class="seg big g-seg"><button type="button" class="${g==='Lab'?'on':''}" data-g="Lab" onclick="setGender(this,'Lab')">👨 Lab</button><button type="button" class="${g==='Dumar'?'on':''}" data-g="Dumar" onclick="setGender(this,'Dumar')">👩 Dumar</button></div></div>
+    <div class="seg big g-seg"><button type="button" class="${g==='Lab'?'on':''}" data-g="Lab" onclick="setGender(this,'Lab')"><span class="be">👨</span>Lab</button><button type="button" class="${g==='Dumar'?'on':''}" data-g="Dumar" onclick="setGender(this,'Dumar')"><span class="be">👩</span>Dumar</button></div></div>
 
-    <div class="fq"><label><span class="fn">5</span>📍 Degmada aad ku nooshahay</label>
-    <select class="p-degmada"><option value="">👇 Dooro degmada</option>${s.districts.map(d=>`<option value="${escAttr(d)}" ${data.degmada===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select></div>
+    <div class="fq fq-deg"><label><span class="fn">3</span>Degmada</label>
+    <select class="p-degmada"><option value="">Dooro 👇</option>${s.districts.map(d=>`<option value="${escAttr(d)}" ${data.degmada===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select></div>
 
-    <div class="fq"><label><span class="fn">6</span>Horay ma u timid isbitaalka?</label>
-    <div class="seg big"><button type="button" class="${rv==='yes'?'on':''}" data-val="yes" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="${rv==='no'?'on':''}" data-val="no" onclick="setReturning(${idx},'no',this)">🆕 Maya</button></div>
+    <div class="fq fq-ret"><label><span class="fn">6</span>Horay ma u timid?</label>
+    <div class="seg big r-seg"><button type="button" class="${rv==='yes'?'on':''}" data-val="yes" onclick="setReturning(${idx},'yes',this)"><span class="be">✅</span>Haa</button><button type="button" class="${rv==='no'?'on':''}" data-val="no" onclick="setReturning(${idx},'no',this)"><span class="be">🆕</span>Maya</button></div>
     <div class="fh">"Maya" = waa markii ugu horreysay</div></div>
   </div>`;
 }
@@ -1561,7 +1618,7 @@ function parseAge(v){
 function ageFieldHTML(idx, age){
   const a = parseAge(age);
   const U = [['sano','Sano'],['bil','Bil'],['maalin','Maalin']];
-  return `<input type="number" min="0" class="p-age" data-unit="${a.u}" placeholder="Tusaale: 70" value="${escAttr(a.n)}" inputmode="numeric" oninput="onAgeInput(this)">
+  return `<input type="number" min="0" class="p-age" data-unit="${a.u}" placeholder="70" value="${escAttr(a.n)}" inputmode="numeric" oninput="onAgeInput(this)">
     <div class="age-units">${U.map(([k,l])=>`<button type="button" data-u="${k}" class="${a.u===k?'on':''}" onclick="setAgeUnit(this,'${k}')">${l}</button>`).join('')}</div>
     <div class="fh">Ama qor sanadka dhalashada, tusaale: 1955</div>
     <div class="age-note"></div>`;
@@ -1610,7 +1667,7 @@ function renderPatients(){
 /* ---------- Hal su'aal markiiba (waayeelka — scroll la'aan) ---------- */
 window._q = 0;
 function allQs(){ return [...document.querySelectorAll('#patientsWrap .fq')]; }
-const Q_PER_PAGE = 2;
+const Q_PER_PAGE = 6;
 function pageCount(){ return Math.ceil(allQs().length / Q_PER_PAGE); }
 function showQ(i, focus=true){
   const qs = allQs(); if(!qs.length) return;
@@ -1622,7 +1679,7 @@ function showQ(i, focus=true){
   $('cardTools').hidden = !(doc.familyCard && i === 0);
   $('addPatientBtn').hidden = !(doc.familyMembers && last);
   const per = Math.ceil(blk.querySelectorAll('.fq').length / Q_PER_PAGE), bi = [...document.querySelectorAll('#patientsWrap .patient-block')].indexOf(blk);
-  $('qTxt').textContent = `Bogga ${(i % per)+1} / ${per}` + (bi>0 ? ` · Xubinta ${bi+1}` : '');
+  $('qTxt').textContent = bi>0 ? `👥 Xubinta ${bi+1}` : ''; $('qProg').hidden = n < 2;
   $('qBar').style.width = (((i % per)+1)/per*100) + '%';
   $('qNextBtn').textContent = last ? '✅ Dhammaystir →' : 'Sii wad →';
   vis.forEach(q=>{ q.classList.remove('q-in'); void q.offsetWidth; q.classList.add('q-in'); });
