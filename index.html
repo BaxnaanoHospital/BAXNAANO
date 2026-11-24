@@ -463,82 +463,6 @@
   #wstep-2 .add-patient{font-size:17px;padding:16px}
   #wstep-2 .f-err{border-color:#e5484d!important;box-shadow:0 0 0 4px rgba(229,72,77,.18)!important;background:#fff6f6!important}
   #wstep-2 input[type=number]::-webkit-inner-spin-button,#wstep-2 input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-
-  /* Hal su'aal markiiba */
-  .q-prog{margin:6px 0 4px}
-  .q-txt{font-size:16px;font-weight:700;color:var(--brand-ink);margin-bottom:6px}
-  .q-bar{height:8px;border-radius:8px;background:var(--line-2);overflow:hidden}
-  .q-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-radius:8px;transition:width .35s var(--ease)}
-  #wstep-2 .fq{margin-top:14px}
-  #wstep-2 .fq label{font-size:20px}
-  #wstep-2 .fq.q-in{animation:viewIn .3s var(--ease) both}
-  #wstep-2 .patient-block{padding-bottom:16px}
-  #wstep-2 .btn-row{margin-top:12px}
-
-  /* Badhamada had iyo jeer muuqda */
-  #wstep-2 .btn-row{position:sticky;bottom:10px;z-index:6;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:8px;border-radius:20px;box-shadow:0 8px 24px rgba(15,42,61,.12)}
-  #wstep-2 .card-head{display:none}
-  #wstep-2 .patient-block[data-idx="0"] .pb-h{display:none}
-  #wstep-2 .fq{margin-top:12px}
-  #wstep-2 .age-note:not(:empty)+*,#wstep-2 .fh:has(+.age-note:not(:empty)){display:none}
-
-  /* ===== Hal bog — qaybo kala dhigan, 2 dhinac ===== */
-  #wstep-2 .patient-block{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;border:none;box-shadow:none;background:transparent}
-  #wstep-2 .patient-block>.pb-h{grid-column:1/-1;margin:0}
-  #wstep-2 .fq{margin:0;padding:12px;border:2px solid var(--line);border-radius:18px;background:#fff;min-width:0}
-  #wstep-2 .fq-wide{grid-column:1/-1}
-  #wstep-2 .fq label{font-size:17px;gap:8px;margin-bottom:8px}
-  #wstep-2 .fn{width:26px;height:26px;font-size:14px}
-  #wstep-2 .fq input,#wstep-2 .fq select{font-size:19px;min-height:56px;padding:12px 14px}
-  #wstep-2 .fq select{padding-right:30px;background-position:right 10px center}
-  #wstep-2 .fq:not(.fq-wide) .fh{display:none}
-  #wstep-2 .age-units{gap:4px;margin-top:6px}
-  #wstep-2 .age-units button{font-size:14px;min-height:42px;padding:6px 2px;border-radius:10px}
-  #wstep-2 .g-seg{flex-direction:column;gap:6px}
-  #wstep-2 .g-seg button{min-height:52px;font-size:18px}
-  #wstep-2 .fq-wide .seg.big button{min-height:56px}
-  #wstep-2 .age-note{font-size:13px;margin-top:4px}
-  @media (max-width:340px){#wstep-2 .patient-block{grid-template-columns:1fr}}
-
-  #wstep-2 .card{padding-left:12px;padding-right:12px}
-  #wstep-2 .patient-block{padding:4px 0 8px;gap:8px}
-  #wstep-2 .fq{padding:10px}
-  #wstep-2 .fq label{font-size:16px;line-height:1.25}
-  #wstep-2 .fq input{font-size:18px;padding:10px 12px;min-height:54px}
-  #wstep-2 .fq select{font-size:18px;min-height:54px}
-  #wstep-2 .fq-deg{order:10}
-  #wstep-2 .g-seg,#wstep-2 .r-seg{flex-direction:column;gap:6px}
-  #wstep-2 .g-seg button,#wstep-2 .r-seg button{min-height:50px;font-size:18px;padding:8px}
-  #wstep-2 .age-units button{flex:1;min-width:0;font-size:13px;min-height:40px;padding:4px 0}
-
-  #wstep-2 .patient-block{grid-template-areas:"hd hd" "name name" "ph age" "deg age" "gen ret"}
-  #wstep-2 .patient-block>.pb-h{grid-area:hd}
-  #wstep-2 .fq-name{grid-area:name} #wstep-2 .fq-ph{grid-area:ph} #wstep-2 .fq-deg{grid-area:deg;order:0}
-  #wstep-2 .fq-age{grid-area:age} #wstep-2 .fq-gen{grid-area:gen} #wstep-2 .fq-ret{grid-area:ret}
-  #wstep-2 .patient-block[data-idx="0"]{grid-template-areas:"name name" "ph age" "deg age" "gen ret"}
-  #wstep-2 .g-seg,#wstep-2 .r-seg{flex-direction:row;gap:6px}
-  #wstep-2 .g-seg button,#wstep-2 .r-seg button{flex:1;min-width:0;flex-direction:column;display:flex;align-items:center;justify-content:center;gap:2px;min-height:62px;font-size:16px;padding:6px 2px;line-height:1.1}
-  #wstep-2 .be{font-size:20px;line-height:1}
-  #wstep-2 .fq-ret .fh{display:none}
-  #wstep-2 .fq-age .fh{display:block;font-size:12.5px;margin-top:6px}
-  #wstep-2 .fq-age .age-note:not(:empty)~.fh,#wstep-2 .fq-age .fh:has(~.age-note:not(:empty)){display:none}
-  #wstep-2 .fq-age .age-units{flex-direction:column}
-  #wstep-2 .fq-age .age-units button{min-height:38px;font-size:15px}
-  #wstep-2 .fq-deg select{font-size:16px;padding:10px 26px 10px 10px;background-position:right 8px center}
-  #wstep-2 .fq-ph input{font-size:17px;padding:10px}
-  @media (max-width:380px){#wstep-2 .picked{display:none}}
-  #wstep-2 .picked{display:none}
-
-  #wstep-2 .patient-block .seg.big.g-seg button,#wstep-2 .patient-block .seg.big.r-seg button{font-size:15px;min-height:56px;padding:4px 2px;border-width:2px}
-  #wstep-2 .fq label{margin-bottom:6px}
-  #wstep-2 .fq{padding:8px 10px 10px}
-  #wstep-2 .fq-age .age-units button{min-height:34px}
-  #wstep-2 .fc-opt>summary{padding:6px 0}
-  #wstep-2 .card{padding-top:10px;padding-bottom:10px}
-  #wstep-2 .btn-row{padding:6px;bottom:8px}
-  #wstep-2 .btn-row .btn{min-height:54px;padding:12px}
-  #wstep-2 .patient-block{padding-bottom:4px}
-  .stepper{margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -610,13 +534,12 @@
           <p class="muted small" id="scanHint"></p>
          </details>
         </div>
-        <div class="q-prog" id="qProg"><div class="q-txt" id="qTxt"></div><div class="q-bar"><i id="qBar"></i></div></div>
         <div id="patientsWrap"></div>
         <button class="add-patient" id="addPatientBtn" hidden onclick="addPatientBlock()">➕ Ku dar xubin kale (qoys)</button>
       </div>
       <div class="btn-row">
-        <button class="btn btn-outline" onclick="qBack()">← Dib</button>
-        <button class="btn btn-primary" id="qNextBtn" onclick="qNext()">Sii wad →</button>
+        <button class="btn btn-outline" onclick="goStep(1)">← Dib</button>
+        <button class="btn btn-primary" onclick="validateStep2()">Sii wad →</button>
       </div>
     </div>
 
@@ -1580,25 +1503,26 @@ function patientTemplate(idx, data={}){
   return `<div class="patient-block" data-idx="${idx}">
     <div class="pb-h"><span>${idx>0 ? '👥 Xubinta '+(idx+1) : '👤 Bukaanka'}</span>${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Ka saar">✕</button>` : ''}</div>
 
-    <div class="fq fq-wide fq-name"><label><span class="fn">1</span>Magaca bukaanka</label>
-    <input type="text" class="p-name" placeholder="Tusaale: CALI XASAN MAXAMED" value="${escAttr(data.name||'')}" oninput="this.value=this.value.toUpperCase()" autocomplete="name"></div>
+    <div class="fq"><label><span class="fn">1</span>Magaca bukaanka</label>
+    <input type="text" class="p-name" placeholder="Magaca oo dhan" value="${escAttr(data.name||'')}" oninput="this.value=this.value.toUpperCase()" autocomplete="name">
+    <div class="fh">Tusaale: CALI XASAN MAXAMED</div></div>
 
-    <div class="fq fq-ph"><label><span class="fn">2</span>Telefoon</label>
-    <input type="tel" class="p-phone" placeholder="061…" value="${escAttr(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)">
+    <div class="fq"><label><span class="fn">2</span>📞 Lambarka telefoonka</label>
+    <input type="tel" class="p-phone" placeholder="061 234 5678" value="${escAttr(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)">
     <div class="fh">Lambarka lacagta laga bixinayo</div></div>
 
-    <div class="fq fq-age"><label><span class="fn">4</span>Da'da</label>
+    <div class="fq"><label><span class="fn">3</span>🎂 Da'da</label>
     ${ageFieldHTML(idx, data.age)}</div>
 
-    <div class="fq fq-gen"><label><span class="fn">5</span>Lab / Dumar</label>
+    <div class="fq"><label><span class="fn">4</span>Lab mise Dumar?</label>
     <select class="p-gender" hidden><option value="Lab" ${g==='Lab'?'selected':''}>Lab</option><option value="Dumar" ${g==='Dumar'?'selected':''}>Dumar</option></select>
-    <div class="seg big g-seg"><button type="button" class="${g==='Lab'?'on':''}" data-g="Lab" onclick="setGender(this,'Lab')"><span class="be">👨</span>Lab</button><button type="button" class="${g==='Dumar'?'on':''}" data-g="Dumar" onclick="setGender(this,'Dumar')"><span class="be">👩</span>Dumar</button></div></div>
+    <div class="seg big g-seg"><button type="button" class="${g==='Lab'?'on':''}" data-g="Lab" onclick="setGender(this,'Lab')">👨 Lab</button><button type="button" class="${g==='Dumar'?'on':''}" data-g="Dumar" onclick="setGender(this,'Dumar')">👩 Dumar</button></div></div>
 
-    <div class="fq fq-deg"><label><span class="fn">3</span>Degmada</label>
-    <select class="p-degmada"><option value="">Dooro 👇</option>${s.districts.map(d=>`<option value="${escAttr(d)}" ${data.degmada===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select></div>
+    <div class="fq"><label><span class="fn">5</span>📍 Degmada aad ku nooshahay</label>
+    <select class="p-degmada"><option value="">👇 Dooro degmada</option>${s.districts.map(d=>`<option value="${escAttr(d)}" ${data.degmada===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select></div>
 
-    <div class="fq fq-ret"><label><span class="fn">6</span>Horay ma u timid?</label>
-    <div class="seg big r-seg"><button type="button" class="${rv==='yes'?'on':''}" data-val="yes" onclick="setReturning(${idx},'yes',this)"><span class="be">✅</span>Haa</button><button type="button" class="${rv==='no'?'on':''}" data-val="no" onclick="setReturning(${idx},'no',this)"><span class="be">🆕</span>Maya</button></div>
+    <div class="fq"><label><span class="fn">6</span>Horay ma u timid isbitaalka?</label>
+    <div class="seg big"><button type="button" class="${rv==='yes'?'on':''}" data-val="yes" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="${rv==='no'?'on':''}" data-val="no" onclick="setReturning(${idx},'no',this)">🆕 Maya</button></div>
     <div class="fh">"Maya" = waa markii ugu horreysay</div></div>
   </div>`;
 }
@@ -1618,9 +1542,9 @@ function parseAge(v){
 function ageFieldHTML(idx, age){
   const a = parseAge(age);
   const U = [['sano','Sano'],['bil','Bil'],['maalin','Maalin']];
-  return `<input type="number" min="0" class="p-age" data-unit="${a.u}" placeholder="70" value="${escAttr(a.n)}" inputmode="numeric" oninput="onAgeInput(this)">
+  return `<input type="number" min="0" class="p-age" data-unit="${a.u}" placeholder="Tusaale: 70" value="${escAttr(a.n)}" inputmode="numeric" oninput="onAgeInput(this)">
     <div class="age-units">${U.map(([k,l])=>`<button type="button" data-u="${k}" class="${a.u===k?'on':''}" onclick="setAgeUnit(this,'${k}')">${l}</button>`).join('')}</div>
-    <div class="fh">Ama qor sanadka dhalashada, tusaale: 1955</div>
+    <div class="fh">Sanadka dhalashada sidoo kale waa la qori karaa (tusaale: 1955). Ilmo yar → dooro <b>Bil</b> ama <b>Maalin</b>.</div>
     <div class="age-note"></div>`;
 }
 function setAgeUnit(btn, u){
@@ -1661,47 +1585,10 @@ function renderPatients(){
   $('cardOk').hidden = !state.familyCardVerified;
   if(state.familyCardVerified) $('fcOpt').open = true;
   $('addPatientBtn').hidden = !doc.familyMembers;
-  $('patientsWrap').querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); qNext(); } }));
-    showQ(window._q === 'last' ? 1e9 : (+window._q||0), false);
 }
-/* ---------- Hal su'aal markiiba (waayeelka — scroll la'aan) ---------- */
-window._q = 0;
-function allQs(){ return [...document.querySelectorAll('#patientsWrap .fq')]; }
-const Q_PER_PAGE = 6;
-function pageCount(){ return Math.ceil(allQs().length / Q_PER_PAGE); }
-function showQ(i, focus=true){
-  const qs = allQs(); if(!qs.length) return;
-  const n = pageCount(); i = Math.max(0, Math.min(i, n-1)); window._q = i;
-  const vis = qs.slice(i*Q_PER_PAGE, i*Q_PER_PAGE+Q_PER_PAGE), blk = vis[0].closest('.patient-block');
-  qs.forEach(q=>{ q.hidden = !vis.includes(q); });
-  document.querySelectorAll('#patientsWrap .patient-block').forEach(b=>{ b.hidden = b !== blk; });
-  const doc = DOCTORS[state.doctorKey] || {}, last = i === n-1;
-  $('cardTools').hidden = !(doc.familyCard && i === 0);
-  $('addPatientBtn').hidden = !(doc.familyMembers && last);
-  const per = Math.ceil(blk.querySelectorAll('.fq').length / Q_PER_PAGE), bi = [...document.querySelectorAll('#patientsWrap .patient-block')].indexOf(blk);
-  $('qTxt').textContent = bi>0 ? `👥 Xubinta ${bi+1}` : ''; $('qProg').hidden = n < 2;
-  $('qBar').style.width = (((i % per)+1)/per*100) + '%';
-  $('qNextBtn').textContent = last ? '✅ Dhammaystir →' : 'Sii wad →';
-  vis.forEach(q=>{ q.classList.remove('q-in'); void q.offsetWidth; q.classList.add('q-in'); });
-  window.scrollTo({top:0,behavior:'smooth'});
-  if(focus){ const inp = vis[0].querySelector('input:not([hidden])'); if(inp) setTimeout(()=>inp.focus(), 250); }
-}
-function qNext(){
-  const qs = allQs(), vis = qs.slice(window._q*Q_PER_PAGE, window._q*Q_PER_PAGE+Q_PER_PAGE); if(!vis.length) return;
-  const find = sel => vis.map(q=>q.querySelector(sel)).find(Boolean);
-  const bad = (el, msg)=>{ el.classList.add('f-err'); toast(msg); el.focus(); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); return true; };
-  const nm = find('.p-name'), ph = find('.p-phone'), dg = find('.p-degmada');
-  if(nm && !nm.value.trim() && bad(nm,'✍️ Fadlan qor magaca bukaanka.')) return;
-  if(ph && !ph.value.trim() && bad(ph,'📞 Fadlan qor lambarka telefoonka.')) return;
-  if(ph && ph.value.replace(/\D/g,'').length < 7 && bad(ph,'📞 Lambarka telefoonka waa gaaban yahay — hubi.')) return;
-  if(dg && !dg.value && bad(dg,'📍 Fadlan dooro degmada.')) return;
-  if(window._q >= pageCount()-1){ validateStep2(); return; }
-  showQ(window._q+1);
-}
-function qBack(){ if(window._q > 0) showQ(window._q-1); else goStep(1); }
 function syncPatientsFromDOM(){ const list = collectPatientsFromDOM(false); list.forEach((p,i)=>{ state.patients[i] = Object.assign(state.patients[i]||{}, p); }); }
-function addPatientBlock(){ syncPatientsFromDOM(); const per = document.querySelector('#patientsWrap .patient-block').querySelectorAll('.fq').length; state.patients.push({}); window._q = Math.ceil(per/Q_PER_PAGE)*(state.patients.length-1); renderPatients(); showQ(window._q); }
-function removePatientBlock(idx){ syncPatientsFromDOM(); state.patients.splice(idx,1); window._q = 'last'; renderPatients(); }
+function addPatientBlock(){ syncPatientsFromDOM(); state.patients.push({}); renderPatients(); setTimeout(()=>{ const b = document.querySelectorAll('.patient-block'); if(b.length) b[b.length-1].scrollIntoView({behavior:'smooth',block:'center'}); },50); }
+function removePatientBlock(idx){ syncPatientsFromDOM(); state.patients.splice(idx,1); renderPatients(); }
 function normalizePatientName(name){
   const map = {CIISE:'ISSE',CISE:'ISSE',YUUSUF:'YUSUF',IBRAAHIM:'IBRAHIM',ISMAACIIL:'ISMAEL',MUUSE:'MUSA',NUUR:'NOOR',NUURADIIN:'NOORADIN',ABDIRAHMAN:'ABDURRAHMAN',CABDIRAXMAAN:'ABDURAHMAN',
     CABDULLAAHI:'ABDULLAH',CABDALLAAH:'ABDALLAH',CABDIQAADIR:'ABDULQADIR',CABDIKARIIM:'ABDULKARIM',CABDICASIIS:'ABDULAZIZ',CABDINAASIR:'ABDULNASIR',CABDISAMAD:'ABDUSSAMAD',CABDIWALI:'ABDULWALI',
@@ -1747,7 +1634,7 @@ function collectPatientsFromDOM(normalize=true){
 function validateStep2(){
   const list = collectPatientsFromDOM();
   const blocks = document.querySelectorAll('.patient-block');
-  const flag = (i, sel, msg)=>{ const el = blocks[i] && blocks[i].querySelector(sel); if(el){ const qi = allQs().indexOf(el.closest('.fq')); if(qi>=0) showQ(Math.floor(qi/Q_PER_PAGE),false); el.classList.add('f-err'); el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.focus(),350); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); } toast(msg); return false; };
+  const flag = (i, sel, msg)=>{ const el = blocks[i] && blocks[i].querySelector(sel); if(el){ el.classList.add('f-err'); el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.focus(),350); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); } toast(msg); return false; };
   for(let i=0;i<list.length;i++){ const p = list[i];
     if(!p.name) return flag(i,'.p-name','✍️ Fadlan qor magaca bukaanka.');
     if(!p.phone) return flag(i,'.p-phone','📞 Fadlan qor lambarka telefoonka.');
@@ -1854,7 +1741,6 @@ function resetBooking(){
 }
 function goStep(n){
   if(n === 2 && !DOCTORS[state.doctorKey]){ toast('Fadlan dooro dhakhtar.'); n = 1; }
-  if(n === 2) window._q = currentStep === 3 ? 'last' : 0;
   currentStep = n;
   [1,2,3].forEach(i=>{ $('wstep-'+i).hidden = i !== n; });
   document.querySelectorAll('.step').forEach(el=>{ const s = +el.dataset.step; el.classList.toggle('active', s===n); el.classList.toggle('done', s<n); });
