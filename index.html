@@ -463,6 +463,17 @@
   #wstep-2 .add-patient{font-size:17px;padding:16px}
   #wstep-2 .f-err{border-color:#e5484d!important;box-shadow:0 0 0 4px rgba(229,72,77,.18)!important;background:#fff6f6!important}
   #wstep-2 input[type=number]::-webkit-inner-spin-button,#wstep-2 input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+  /* Hal su'aal markiiba */
+  .q-prog{margin:6px 0 4px}
+  .q-txt{font-size:16px;font-weight:700;color:var(--brand-ink);margin-bottom:6px}
+  .q-bar{height:8px;border-radius:8px;background:var(--line-2);overflow:hidden}
+  .q-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-radius:8px;transition:width .35s var(--ease)}
+  #wstep-2 .fq{margin-top:14px}
+  #wstep-2 .fq label{font-size:22px}
+  #wstep-2 .fq.q-in{animation:viewIn .3s var(--ease) both}
+  #wstep-2 .patient-block{padding-bottom:16px}
+  #wstep-2 .btn-row{margin-top:12px}
 </style>
 </head>
 <body>
@@ -534,12 +545,13 @@
           <p class="muted small" id="scanHint"></p>
          </details>
         </div>
+        <div class="q-prog" id="qProg"><div class="q-txt" id="qTxt"></div><div class="q-bar"><i id="qBar"></i></div></div>
         <div id="patientsWrap"></div>
         <button class="add-patient" id="addPatientBtn" hidden onclick="addPatientBlock()">➕ Ku dar xubin kale (qoys)</button>
       </div>
       <div class="btn-row">
-        <button class="btn btn-outline" onclick="goStep(1)">← Dib</button>
-        <button class="btn btn-primary" onclick="validateStep2()">Sii wad →</button>
+        <button class="btn btn-outline" onclick="qBack()">← Dib</button>
+        <button class="btn btn-primary" id="qNextBtn" onclick="qNext()">Sii wad →</button>
       </div>
     </div>
 
@@ -1528,6 +1540,7 @@ function patientTemplate(idx, data={}){
 }
 function setGender(btn, g){
   const blk = btn.closest('.patient-block'); blk.querySelector('.p-gender').value = g; syncGenderBtns(blk);
+  setTimeout(()=>{ if(currentStep===2 && allQs()[window._q] === btn.closest('.fq')) qNext(); }, 450);
 }
 function syncGenderBtns(blk){
   const v = blk.querySelector('.p-gender').value;
@@ -1544,7 +1557,7 @@ function ageFieldHTML(idx, age){
   const U = [['sano','Sano'],['bil','Bil'],['maalin','Maalin']];
   return `<input type="number" min="0" class="p-age" data-unit="${a.u}" placeholder="Tusaale: 70" value="${escAttr(a.n)}" inputmode="numeric" oninput="onAgeInput(this)">
     <div class="age-units">${U.map(([k,l])=>`<button type="button" data-u="${k}" class="${a.u===k?'on':''}" onclick="setAgeUnit(this,'${k}')">${l}</button>`).join('')}</div>
-    <div class="fh">Sanadka dhalashada sidoo kale waa la qori karaa (tusaale: 1955). Ilmo yar → dooro <b>Bil</b> ama <b>Maalin</b>.</div>
+    <div class="fh">Ama qor sanadka dhalashada, tusaale: 1955</div>
     <div class="age-note"></div>`;
 }
 function setAgeUnit(btn, u){
@@ -1585,10 +1598,45 @@ function renderPatients(){
   $('cardOk').hidden = !state.familyCardVerified;
   if(state.familyCardVerified) $('fcOpt').open = true;
   $('addPatientBtn').hidden = !doc.familyMembers;
+  $('patientsWrap').querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); qNext(); } }));
+  const n = allQs().length;
+  showQ(window._q === 'last' ? n-1 : Math.min(+window._q||0, n-1), false);
 }
+/* ---------- Hal su'aal markiiba (waayeelka — scroll la'aan) ---------- */
+window._q = 0;
+function allQs(){ return [...document.querySelectorAll('#patientsWrap .fq')]; }
+function showQ(i, focus=true){
+  const qs = allQs(); if(!qs.length) return;
+  i = Math.max(0, Math.min(i, qs.length-1)); window._q = i;
+  const cur = qs[i], blk = cur.closest('.patient-block');
+  qs.forEach(q=>{ q.hidden = q !== cur; });
+  document.querySelectorAll('#patientsWrap .patient-block').forEach(b=>{ b.hidden = b !== blk; });
+  const doc = DOCTORS[state.doctorKey] || {}, last = i === qs.length-1;
+  $('cardTools').hidden = !(doc.familyCard && i === 0);
+  $('addPatientBtn').hidden = !(doc.familyMembers && last);
+  const per = blk.querySelectorAll('.fq').length, bi = [...document.querySelectorAll('#patientsWrap .patient-block')].indexOf(blk);
+  $('qTxt').textContent = `Su'aal ${(i % per)+1} / ${per}` + (bi>0 ? ` · Xubinta ${bi+1}` : '');
+  $('qBar').style.width = (((i % per)+1)/per*100) + '%';
+  $('qNextBtn').textContent = last ? '✅ Dhammaystir →' : 'Sii wad →';
+  cur.classList.remove('q-in'); void cur.offsetWidth; cur.classList.add('q-in');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(focus){ const inp = cur.querySelector('input:not([hidden])'); if(inp) setTimeout(()=>inp.focus(), 250); }
+}
+function qNext(){
+  const qs = allQs(), cur = qs[window._q]; if(!cur) return;
+  const need = (sel, msg)=>{ const el = cur.querySelector(sel); if(el && !String(el.value).trim()){ el.classList.add('f-err'); toast(msg); el.focus(); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); return false; } return true; };
+  if(!need('.p-name','✍️ Fadlan qor magaca bukaanka.')) return;
+  if(!need('.p-phone','📞 Fadlan qor lambarka telefoonka.')) return;
+  const ph = cur.querySelector('.p-phone');
+  if(ph && ph.value.replace(/\D/g,'').length < 7){ ph.classList.add('f-err'); toast('📞 Lambarka telefoonka waa gaaban yahay — hubi.'); ph.focus(); return; }
+  if(!need('.p-degmada','📍 Fadlan dooro degmada.')) return;
+  if(window._q >= qs.length-1){ validateStep2(); return; }
+  showQ(window._q+1);
+}
+function qBack(){ if(window._q > 0) showQ(window._q-1); else goStep(1); }
 function syncPatientsFromDOM(){ const list = collectPatientsFromDOM(false); list.forEach((p,i)=>{ state.patients[i] = Object.assign(state.patients[i]||{}, p); }); }
-function addPatientBlock(){ syncPatientsFromDOM(); state.patients.push({}); renderPatients(); setTimeout(()=>{ const b = document.querySelectorAll('.patient-block'); if(b.length) b[b.length-1].scrollIntoView({behavior:'smooth',block:'center'}); },50); }
-function removePatientBlock(idx){ syncPatientsFromDOM(); state.patients.splice(idx,1); renderPatients(); }
+function addPatientBlock(){ syncPatientsFromDOM(); const per = document.querySelector('#patientsWrap .patient-block').querySelectorAll('.fq').length; state.patients.push({}); window._q = per*(state.patients.length-1); renderPatients(); showQ(window._q); }
+function removePatientBlock(idx){ syncPatientsFromDOM(); state.patients.splice(idx,1); window._q = 'last'; renderPatients(); }
 function normalizePatientName(name){
   const map = {CIISE:'ISSE',CISE:'ISSE',YUUSUF:'YUSUF',IBRAAHIM:'IBRAHIM',ISMAACIIL:'ISMAEL',MUUSE:'MUSA',NUUR:'NOOR',NUURADIIN:'NOORADIN',ABDIRAHMAN:'ABDURRAHMAN',CABDIRAXMAAN:'ABDURAHMAN',
     CABDULLAAHI:'ABDULLAH',CABDALLAAH:'ABDALLAH',CABDIQAADIR:'ABDULQADIR',CABDIKARIIM:'ABDULKARIM',CABDICASIIS:'ABDULAZIZ',CABDINAASIR:'ABDULNASIR',CABDISAMAD:'ABDUSSAMAD',CABDIWALI:'ABDULWALI',
@@ -1634,7 +1682,7 @@ function collectPatientsFromDOM(normalize=true){
 function validateStep2(){
   const list = collectPatientsFromDOM();
   const blocks = document.querySelectorAll('.patient-block');
-  const flag = (i, sel, msg)=>{ const el = blocks[i] && blocks[i].querySelector(sel); if(el){ el.classList.add('f-err'); el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.focus(),350); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); } toast(msg); return false; };
+  const flag = (i, sel, msg)=>{ const el = blocks[i] && blocks[i].querySelector(sel); if(el){ const qi = allQs().indexOf(el.closest('.fq')); if(qi>=0) showQ(qi,false); el.classList.add('f-err'); el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.focus(),350); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); } toast(msg); return false; };
   for(let i=0;i<list.length;i++){ const p = list[i];
     if(!p.name) return flag(i,'.p-name','✍️ Fadlan qor magaca bukaanka.');
     if(!p.phone) return flag(i,'.p-phone','📞 Fadlan qor lambarka telefoonka.');
@@ -1741,6 +1789,7 @@ function resetBooking(){
 }
 function goStep(n){
   if(n === 2 && !DOCTORS[state.doctorKey]){ toast('Fadlan dooro dhakhtar.'); n = 1; }
+  if(n === 2) window._q = currentStep === 3 ? 'last' : 0;
   currentStep = n;
   [1,2,3].forEach(i=>{ $('wstep-'+i).hidden = i !== n; });
   document.querySelectorAll('.step').forEach(el=>{ const s = +el.dataset.step; el.classList.toggle('active', s===n); el.classList.toggle('done', s<n); });
