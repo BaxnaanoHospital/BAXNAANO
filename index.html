@@ -470,10 +470,17 @@
   .q-bar{height:8px;border-radius:8px;background:var(--line-2);overflow:hidden}
   .q-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-radius:8px;transition:width .35s var(--ease)}
   #wstep-2 .fq{margin-top:14px}
-  #wstep-2 .fq label{font-size:22px}
+  #wstep-2 .fq label{font-size:20px}
   #wstep-2 .fq.q-in{animation:viewIn .3s var(--ease) both}
   #wstep-2 .patient-block{padding-bottom:16px}
   #wstep-2 .btn-row{margin-top:12px}
+
+  /* Badhamada had iyo jeer muuqda */
+  #wstep-2 .btn-row{position:sticky;bottom:10px;z-index:6;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:8px;border-radius:20px;box-shadow:0 8px 24px rgba(15,42,61,.12)}
+  #wstep-2 .card-head{display:none}
+  #wstep-2 .patient-block[data-idx="0"] .pb-h{display:none}
+  #wstep-2 .fq{margin-top:12px}
+  #wstep-2 .age-note:not(:empty)+*,#wstep-2 .fh:has(+.age-note:not(:empty)){display:none}
 </style>
 </head>
 <body>
@@ -1540,7 +1547,6 @@ function patientTemplate(idx, data={}){
 }
 function setGender(btn, g){
   const blk = btn.closest('.patient-block'); blk.querySelector('.p-gender').value = g; syncGenderBtns(blk);
-  setTimeout(()=>{ if(currentStep===2 && allQs()[window._q] === btn.closest('.fq')) qNext(); }, 450);
 }
 function syncGenderBtns(blk){
   const v = blk.querySelector('.p-gender').value;
@@ -1599,43 +1605,45 @@ function renderPatients(){
   if(state.familyCardVerified) $('fcOpt').open = true;
   $('addPatientBtn').hidden = !doc.familyMembers;
   $('patientsWrap').querySelectorAll('input').forEach(inp=>inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); qNext(); } }));
-  const n = allQs().length;
-  showQ(window._q === 'last' ? n-1 : Math.min(+window._q||0, n-1), false);
+    showQ(window._q === 'last' ? 1e9 : (+window._q||0), false);
 }
 /* ---------- Hal su'aal markiiba (waayeelka — scroll la'aan) ---------- */
 window._q = 0;
 function allQs(){ return [...document.querySelectorAll('#patientsWrap .fq')]; }
+const Q_PER_PAGE = 2;
+function pageCount(){ return Math.ceil(allQs().length / Q_PER_PAGE); }
 function showQ(i, focus=true){
   const qs = allQs(); if(!qs.length) return;
-  i = Math.max(0, Math.min(i, qs.length-1)); window._q = i;
-  const cur = qs[i], blk = cur.closest('.patient-block');
-  qs.forEach(q=>{ q.hidden = q !== cur; });
+  const n = pageCount(); i = Math.max(0, Math.min(i, n-1)); window._q = i;
+  const vis = qs.slice(i*Q_PER_PAGE, i*Q_PER_PAGE+Q_PER_PAGE), blk = vis[0].closest('.patient-block');
+  qs.forEach(q=>{ q.hidden = !vis.includes(q); });
   document.querySelectorAll('#patientsWrap .patient-block').forEach(b=>{ b.hidden = b !== blk; });
-  const doc = DOCTORS[state.doctorKey] || {}, last = i === qs.length-1;
+  const doc = DOCTORS[state.doctorKey] || {}, last = i === n-1;
   $('cardTools').hidden = !(doc.familyCard && i === 0);
   $('addPatientBtn').hidden = !(doc.familyMembers && last);
-  const per = blk.querySelectorAll('.fq').length, bi = [...document.querySelectorAll('#patientsWrap .patient-block')].indexOf(blk);
-  $('qTxt').textContent = `Su'aal ${(i % per)+1} / ${per}` + (bi>0 ? ` · Xubinta ${bi+1}` : '');
+  const per = Math.ceil(blk.querySelectorAll('.fq').length / Q_PER_PAGE), bi = [...document.querySelectorAll('#patientsWrap .patient-block')].indexOf(blk);
+  $('qTxt').textContent = `Bogga ${(i % per)+1} / ${per}` + (bi>0 ? ` · Xubinta ${bi+1}` : '');
   $('qBar').style.width = (((i % per)+1)/per*100) + '%';
   $('qNextBtn').textContent = last ? '✅ Dhammaystir →' : 'Sii wad →';
-  cur.classList.remove('q-in'); void cur.offsetWidth; cur.classList.add('q-in');
+  vis.forEach(q=>{ q.classList.remove('q-in'); void q.offsetWidth; q.classList.add('q-in'); });
   window.scrollTo({top:0,behavior:'smooth'});
-  if(focus){ const inp = cur.querySelector('input:not([hidden])'); if(inp) setTimeout(()=>inp.focus(), 250); }
+  if(focus){ const inp = vis[0].querySelector('input:not([hidden])'); if(inp) setTimeout(()=>inp.focus(), 250); }
 }
 function qNext(){
-  const qs = allQs(), cur = qs[window._q]; if(!cur) return;
-  const need = (sel, msg)=>{ const el = cur.querySelector(sel); if(el && !String(el.value).trim()){ el.classList.add('f-err'); toast(msg); el.focus(); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); return false; } return true; };
-  if(!need('.p-name','✍️ Fadlan qor magaca bukaanka.')) return;
-  if(!need('.p-phone','📞 Fadlan qor lambarka telefoonka.')) return;
-  const ph = cur.querySelector('.p-phone');
-  if(ph && ph.value.replace(/\D/g,'').length < 7){ ph.classList.add('f-err'); toast('📞 Lambarka telefoonka waa gaaban yahay — hubi.'); ph.focus(); return; }
-  if(!need('.p-degmada','📍 Fadlan dooro degmada.')) return;
-  if(window._q >= qs.length-1){ validateStep2(); return; }
+  const qs = allQs(), vis = qs.slice(window._q*Q_PER_PAGE, window._q*Q_PER_PAGE+Q_PER_PAGE); if(!vis.length) return;
+  const find = sel => vis.map(q=>q.querySelector(sel)).find(Boolean);
+  const bad = (el, msg)=>{ el.classList.add('f-err'); toast(msg); el.focus(); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); return true; };
+  const nm = find('.p-name'), ph = find('.p-phone'), dg = find('.p-degmada');
+  if(nm && !nm.value.trim() && bad(nm,'✍️ Fadlan qor magaca bukaanka.')) return;
+  if(ph && !ph.value.trim() && bad(ph,'📞 Fadlan qor lambarka telefoonka.')) return;
+  if(ph && ph.value.replace(/\D/g,'').length < 7 && bad(ph,'📞 Lambarka telefoonka waa gaaban yahay — hubi.')) return;
+  if(dg && !dg.value && bad(dg,'📍 Fadlan dooro degmada.')) return;
+  if(window._q >= pageCount()-1){ validateStep2(); return; }
   showQ(window._q+1);
 }
 function qBack(){ if(window._q > 0) showQ(window._q-1); else goStep(1); }
 function syncPatientsFromDOM(){ const list = collectPatientsFromDOM(false); list.forEach((p,i)=>{ state.patients[i] = Object.assign(state.patients[i]||{}, p); }); }
-function addPatientBlock(){ syncPatientsFromDOM(); const per = document.querySelector('#patientsWrap .patient-block').querySelectorAll('.fq').length; state.patients.push({}); window._q = per*(state.patients.length-1); renderPatients(); showQ(window._q); }
+function addPatientBlock(){ syncPatientsFromDOM(); const per = document.querySelector('#patientsWrap .patient-block').querySelectorAll('.fq').length; state.patients.push({}); window._q = Math.ceil(per/Q_PER_PAGE)*(state.patients.length-1); renderPatients(); showQ(window._q); }
 function removePatientBlock(idx){ syncPatientsFromDOM(); state.patients.splice(idx,1); window._q = 'last'; renderPatients(); }
 function normalizePatientName(name){
   const map = {CIISE:'ISSE',CISE:'ISSE',YUUSUF:'YUSUF',IBRAAHIM:'IBRAHIM',ISMAACIIL:'ISMAEL',MUUSE:'MUSA',NUUR:'NOOR',NUURADIIN:'NOORADIN',ABDIRAHMAN:'ABDURRAHMAN',CABDIRAXMAAN:'ABDURAHMAN',
@@ -1682,7 +1690,7 @@ function collectPatientsFromDOM(normalize=true){
 function validateStep2(){
   const list = collectPatientsFromDOM();
   const blocks = document.querySelectorAll('.patient-block');
-  const flag = (i, sel, msg)=>{ const el = blocks[i] && blocks[i].querySelector(sel); if(el){ const qi = allQs().indexOf(el.closest('.fq')); if(qi>=0) showQ(qi,false); el.classList.add('f-err'); el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.focus(),350); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); } toast(msg); return false; };
+  const flag = (i, sel, msg)=>{ const el = blocks[i] && blocks[i].querySelector(sel); if(el){ const qi = allQs().indexOf(el.closest('.fq')); if(qi>=0) showQ(Math.floor(qi/Q_PER_PAGE),false); el.classList.add('f-err'); el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.focus(),350); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); } toast(msg); return false; };
   for(let i=0;i<list.length;i++){ const p = list[i];
     if(!p.name) return flag(i,'.p-name','✍️ Fadlan qor magaca bukaanka.');
     if(!p.phone) return flag(i,'.p-phone','📞 Fadlan qor lambarka telefoonka.');
