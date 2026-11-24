@@ -464,6 +464,17 @@
   #callHint .ch-arrows span:nth-child(2){animation-delay:.2s}
   #callHint .ch-arrows span:nth-child(3){animation-delay:.4s}
   @keyframes arrowFall{0%{opacity:0;transform:translateY(-14px)}40%{opacity:1}100%{opacity:0;transform:translateY(16px)}}
+
+  /* Dooro qofka lambarka */
+  .who-pick{margin-top:12px;padding:12px;border:2px solid var(--brand);border-radius:16px;background:var(--brand-soft);animation:viewIn .3s var(--ease) both}
+  .who-pick .wp-t{font-size:15px;color:var(--brand-ink);margin-bottom:10px;line-height:1.4}
+  .who-pick .wp-list{display:flex;flex-direction:column;gap:8px}
+  .who-pick button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink)}
+  .who-pick button .wp-n{font-size:17px;font-weight:700}
+  .who-pick button .wp-m{font-size:13.5px;color:var(--muted)}
+  .who-pick button.on{border-color:var(--brand);background:#fff;box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 25%,transparent)}
+  .who-pick button.on .wp-n::after{content:'  ✓';color:var(--ok)}
+  .who-pick .wp-new{border-style:dashed}
 </style>
 </head>
 <body>
@@ -1356,7 +1367,7 @@ function printReceipt(id){
     <div style="display:flex;gap:12px;margin-top:9px">
       <div style="flex:0 0 42%;border:4px double #000;padding:10px;text-align:center">
         <div style="font-size:12px;font-weight:700;letter-spacing:.18em">LAMBARKAAGA</div>
-        <div style="font-size:72px;font-weight:900;line-height:1;margin:4px 0">${a.queueNumber != null ? H(String(a.queueNumber)) : '–'}</div>
+        ${a.odooQueue != null && a.odooQueue !== '' ? `<div style="font-size:72px;font-weight:900;line-height:1;margin:4px 0">${H(String(a.odooQueue))}</div>` : `<div style="font-size:15px;font-weight:800;line-height:1.35;margin:14px 4px">Lambarkaaga waxaa lagu siin doonaa<br>isbitaalka (Reception)</div>`}
         <div style="font-size:11px;font-weight:700;letter-spacing:.16em">YOUR NUMBER</div>
         <div style="font-size:11px;font-weight:700;margin-top:4px">${H(a.id)}</div>
         <div style="border-top:1px solid #000;margin-top:8px;padding-top:6px;font-size:10.5px;line-height:1.45">Sug inta lambarkaaga la yeerayo<br>Please wait until your number is called</div>
@@ -1717,22 +1728,61 @@ function normalizePatientName(name){
     CISMAAN:'OSMAN',CALI:'ALI',XASAN:'HASSAN',SHEEKH:'SHEIKH',MUXAMED:'MOHAMED',MUXAMUUD:'MAHMOUD'};
   return name.trim().toUpperCase().replace(/\s+/g,' ').replace(/[A-Z]+/g, w => map[w] || w);
 }
+/* ---------- Telefoon horay loo isticmaalay: dooro qofka ama qof cusub ---------- */
+const phoneKey = v => String(v||'').replace(/\D/g,'').slice(-9);
+function peopleForPhone(phone){
+  const k = phoneKey(phone); if(k.length < 7) return [];
+  const map = new Map();
+  load(APPTS_KEY, []).forEach(a=>(a.patients||[]).forEach(p=>{
+    if(phoneKey(p.phone) !== k || !p.name || /XOGTIISU/i.test(p.name)) return;
+    const nk = String(p.name).toUpperCase().replace(/[^A-Z ]/g,'').replace(/\s+/g,' ').trim();
+    const prev = map.get(nk);
+    if(!prev || new Date(a.createdAt) > new Date(prev.at)) map.set(nk, { p, at:a.createdAt });
+  }));
+  return [...map.values()].sort((x,y)=>new Date(y.at)-new Date(x.at)).map(e=>e.p).slice(0,8);
+}
 function loadPatientHistory(idx, phone){
-  const digits = String(phone||'').replace(/\D/g,'');
-  if(digits.length < 7) return;
-  const block = document.querySelector(`.patient-block[data-idx="${idx}"]`);
-  if(!block || block.dataset.historyLoaded === digits) return;
-  const saved = load(APPTS_KEY, []).flatMap(a=>(a.patients||[]).map(p=>({p, at:a.createdAt})))
-    .filter(e=>String(e.p.phone||'').replace(/\D/g,'') === digits).sort((a,b)=>new Date(b.at)-new Date(a.at))[0]?.p;
-  if(!saved) return;
-  block.dataset.historyLoaded = digits;
-  { const ag = block.querySelector('.p-age'); if(ag && !ag.value && saved.age) setAgeInput(ag, saved.age); }
-  [['.p-name','name'],['.p-gender','gender'],['.p-degmada','degmada']].forEach(([sel,k])=>{
-    const f = block.querySelector(sel);
-    if(f && (!f.value || (sel === '.p-gender' && f.value === 'Lab')) && saved[k]) f.value = saved[k];
-  });
-  if(state.patients[idx] && !state.patients[idx].returning) state.patients[idx].returning = 'yes';
-  block.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on', b.dataset.val === 'yes'));
+  const block = document.querySelector(`.patient-block[data-idx="${idx}"]`); if(!block) return;
+  const k = phoneKey(phone);
+  let box = block.querySelector('.who-pick');
+  if(k.length < 7){ if(box) box.remove(); block.dataset.historyLoaded = ''; return; }
+  if(block.dataset.historyLoaded === k) return;
+  block.dataset.historyLoaded = k;
+  const people = peopleForPhone(phone);
+  if(box) box.remove();
+  if(!people.length) return;
+  box = document.createElement('div'); box.className = 'who-pick';
+  block._people = people;
+  const age = v => /^\d+$/.test(String(v||'')) ? v+' sano' : (v||'');
+  box.innerHTML = `<div class="wp-t">📞 Lambarkan hore ayaa loo isticmaalay. <b>Bukaanku waa kee?</b></div>
+    <div class="wp-list">${people.map((p,i)=>`<button type="button" data-i="${i}" onclick="pickPerson(${idx},${i},this)"><span class="wp-n">👤 ${escapeHtml(p.name)}</span><span class="wp-m">${escapeHtml([age(p.age), p.gender, p.degmada].filter(Boolean).join(' · '))}</span></button>`).join('')}
+    <button type="button" class="wp-new" data-i="new" onclick="pickNewPerson(${idx},this)"><span class="wp-n">➕ Qof cusub</span><span class="wp-m">Qof kale oo isla lambarkan ah</span></button></div>`;
+  block.querySelector('.p-phone').closest('.row2').after(box);
+}
+function markPick(btn){ btn.closest('.wp-list').querySelectorAll('button').forEach(b=>b.classList.toggle('on', b === btn)); }
+function setSegReturning(block, idx, val){
+  if(!state.patients[idx]) state.patients[idx] = {};
+  state.patients[idx].returning = val;
+  block.querySelectorAll('.seg button[data-val]').forEach(b=>b.classList.toggle('on', b.dataset.val === val));
+}
+function pickPerson(idx, i, btn){
+  const block = btn.closest('.patient-block'), p = (block._people||[])[i]; if(!p) return;
+  markPick(btn);
+  block.querySelector('.p-name').value = p.name || '';
+  const ag = block.querySelector('.p-age'); if(ag) setAgeInput(ag, p.age || '');
+  if(p.gender) block.querySelector('.p-gender').value = p.gender;
+  if(p.degmada) block.querySelector('.p-degmada').value = p.degmada;
+  setSegReturning(block, idx, 'yes');
+  if(typeof resetIdleNudge === 'function') resetIdleNudge();
+}
+function pickNewPerson(idx, btn){
+  const block = btn.closest('.patient-block');
+  markPick(btn);
+  block.querySelector('.p-name').value = '';
+  const ag = block.querySelector('.p-age'); if(ag) setAgeInput(ag, '');
+  block.querySelector('.p-gender').value = 'Lab';
+  setSegReturning(block, idx, 'no');
+  setTimeout(()=>{ const n = block.querySelector('.p-name'); n.scrollIntoView({behavior:'smooth',block:'center'}); n.focus(); }, 150);
 }
 function collectPatientsFromDOM(normalize=true){
   const list = [];
