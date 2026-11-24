@@ -444,6 +444,25 @@
   @keyframes handBob{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
   @keyframes payPulse{0%,100%{box-shadow:0 6px 16px rgba(17,154,106,.26),0 0 0 0 rgba(19,166,115,.55);transform:scale(1)}50%{box-shadow:0 6px 16px rgba(17,154,106,.26),0 0 0 14px rgba(19,166,115,0);transform:scale(1.03)}}
   @media (prefers-reduced-motion:reduce){.pay-row.nudge .btn-success,.pay-hint .hand{animation:none!important}}
+
+  /* ===== Foom fudud — waayeelka ===== */
+  #wstep-2 .row2{grid-template-columns:1fr!important}
+  #wstep-2 .fq{margin-top:22px}
+  #wstep-2 .fq label{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:700;color:var(--ink);margin:0 0 10px}
+  #wstep-2 .fn{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
+  #wstep-2 .fh{font-size:15px;color:var(--muted);margin-top:8px;line-height:1.4}
+  #wstep-2 input[type=text],#wstep-2 input[type=tel],#wstep-2 input[type=number],#wstep-2 select{font-size:21px;padding:16px 18px;min-height:64px;border-radius:16px;border:2px solid var(--line);font-weight:500}
+  #wstep-2 input::placeholder{font-size:18px;color:#9aaab5;text-transform:none}
+  #wstep-2 .seg.big button{font-size:20px;min-height:64px;padding:14px 8px;border-radius:16px;border:2px solid var(--line);font-weight:700}
+  #wstep-2 .seg.big button.on{border-color:var(--brand)}
+  #wstep-2 .age-units button{font-size:18px;min-height:54px;border-width:2px}
+  #wstep-2 .age-note{font-size:16px;font-weight:600}
+  #wstep-2 .patient-block .pb-h{font-size:16px}
+  #wstep-2 .btn-row .btn{font-size:19px;min-height:62px}
+  #wstep-2 .btn-row .btn-primary{flex:2}
+  #wstep-2 .add-patient{font-size:17px;padding:16px}
+  #wstep-2 .f-err{border-color:#e5484d!important;box-shadow:0 0 0 4px rgba(229,72,77,.18)!important;background:#fff6f6!important}
+  #wstep-2 input[type=number]::-webkit-inner-spin-button,#wstep-2 input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 </style>
 </head>
 <body>
@@ -1480,21 +1499,39 @@ function handleDoctorsChanged(){
 
 /* ---------- Step 2: bukaannada ---------- */
 function patientTemplate(idx, data={}){
-  const rv = data.returning, s = getSettings();
+  const rv = data.returning, s = getSettings(), g = data.gender || 'Lab';
   return `<div class="patient-block" data-idx="${idx}">
-    <div class="pb-h"><span>${idx>0 ? 'Xubinta '+(idx+1) : 'Bukaanka'}</span>${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Ka saar">✕</button>` : ''}</div>
-    <label>Magaca oo dhamaystiran</label><input type="text" class="p-name" placeholder="Tusaale: Cali Xasan Mohamed" value="${escAttr(data.name||'')}" oninput="this.value=this.value.toUpperCase()" autocomplete="name">
-    <div class="row2">
-      <div><label>Telefoonka</label><input type="tel" class="p-phone" placeholder="06XXXXXXXX" value="${escAttr(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)"></div>
-      <div><label>Da'da</label>${ageFieldHTML(idx, data.age)}</div>
-    </div>
-    <div class="row2">
-      <div><label>Jinsiga</label><select class="p-gender"><option value="Lab" ${data.gender==='Lab'?'selected':''}>Lab (Male)</option><option value="Dumar" ${data.gender==='Dumar'?'selected':''}>Dumar (Female)</option></select></div>
-      <div><label>Degmada</label><select class="p-degmada"><option value="">-- Dooro --</option>${s.districts.map(d=>`<option value="${escAttr(d)}" ${data.degmada===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select></div>
-    </div>
-    <label>Horay ma u timid isbitaalka?</label>
-    <div class="seg"><button type="button" class="${rv==='yes'?'on':''}" data-val="yes" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="${rv==='no'?'on':''}" data-val="no" onclick="setReturning(${idx},'no',this)">➕ Maya, waa markii u horreysay</button></div>
+    <div class="pb-h"><span>${idx>0 ? '👥 Xubinta '+(idx+1) : '👤 Bukaanka'}</span>${idx>0 ? `<button class="rm" onclick="removePatientBlock(${idx})" aria-label="Ka saar">✕</button>` : ''}</div>
+
+    <div class="fq"><label><span class="fn">1</span>Magaca bukaanka</label>
+    <input type="text" class="p-name" placeholder="Magaca oo dhan" value="${escAttr(data.name||'')}" oninput="this.value=this.value.toUpperCase()" autocomplete="name">
+    <div class="fh">Tusaale: CALI XASAN MAXAMED</div></div>
+
+    <div class="fq"><label><span class="fn">2</span>📞 Lambarka telefoonka</label>
+    <input type="tel" class="p-phone" placeholder="061 234 5678" value="${escAttr(data.phone||'')}" inputmode="tel" oninput="loadPatientHistory(${idx},this.value)">
+    <div class="fh">Lambarka lacagta laga bixinayo</div></div>
+
+    <div class="fq"><label><span class="fn">3</span>🎂 Da'da</label>
+    ${ageFieldHTML(idx, data.age)}</div>
+
+    <div class="fq"><label><span class="fn">4</span>Lab mise Dumar?</label>
+    <select class="p-gender" hidden><option value="Lab" ${g==='Lab'?'selected':''}>Lab</option><option value="Dumar" ${g==='Dumar'?'selected':''}>Dumar</option></select>
+    <div class="seg big g-seg"><button type="button" class="${g==='Lab'?'on':''}" data-g="Lab" onclick="setGender(this,'Lab')">👨 Lab</button><button type="button" class="${g==='Dumar'?'on':''}" data-g="Dumar" onclick="setGender(this,'Dumar')">👩 Dumar</button></div></div>
+
+    <div class="fq"><label><span class="fn">5</span>📍 Degmada aad ku nooshahay</label>
+    <select class="p-degmada"><option value="">👇 Dooro degmada</option>${s.districts.map(d=>`<option value="${escAttr(d)}" ${data.degmada===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select></div>
+
+    <div class="fq"><label><span class="fn">6</span>Horay ma u timid isbitaalka?</label>
+    <div class="seg big"><button type="button" class="${rv==='yes'?'on':''}" data-val="yes" onclick="setReturning(${idx},'yes',this)">✅ Haa</button><button type="button" class="${rv==='no'?'on':''}" data-val="no" onclick="setReturning(${idx},'no',this)">🆕 Maya</button></div>
+    <div class="fh">"Maya" = waa markii ugu horreysay</div></div>
   </div>`;
+}
+function setGender(btn, g){
+  const blk = btn.closest('.patient-block'); blk.querySelector('.p-gender').value = g; syncGenderBtns(blk);
+}
+function syncGenderBtns(blk){
+  const v = blk.querySelector('.p-gender').value;
+  blk.querySelectorAll('.g-seg button').forEach(b=>b.classList.toggle('on', b.dataset.g === v));
 }
 /* ---------- Da'da: sano / bil / maalin + sanadka dhalashada ---------- */
 function parseAge(v){
@@ -1505,8 +1542,9 @@ function parseAge(v){
 function ageFieldHTML(idx, age){
   const a = parseAge(age);
   const U = [['sano','Sano'],['bil','Bil'],['maalin','Maalin']];
-  return `<input type="number" min="0" class="p-age" data-unit="${a.u}" placeholder="Da'da ama sanadka dhalashada" value="${escAttr(a.n)}" inputmode="numeric" oninput="onAgeInput(this)">
+  return `<input type="number" min="0" class="p-age" data-unit="${a.u}" placeholder="Tusaale: 70" value="${escAttr(a.n)}" inputmode="numeric" oninput="onAgeInput(this)">
     <div class="age-units">${U.map(([k,l])=>`<button type="button" data-u="${k}" class="${a.u===k?'on':''}" onclick="setAgeUnit(this,'${k}')">${l}</button>`).join('')}</div>
+    <div class="fh">Sanadka dhalashada sidoo kale waa la qori karaa (tusaale: 1955). Ilmo yar → dooro <b>Bil</b> ama <b>Maalin</b>.</div>
     <div class="age-note"></div>`;
 }
 function setAgeUnit(btn, u){
@@ -1579,7 +1617,8 @@ function loadPatientHistory(idx, phone){
     if(f && (!f.value || (sel === '.p-gender' && f.value === 'Lab')) && saved[k]) f.value = saved[k];
   });
   if(state.patients[idx] && !state.patients[idx].returning) state.patients[idx].returning = 'yes';
-  block.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on', b.dataset.val === 'yes'));
+  block.querySelectorAll('.seg button[data-val]').forEach(b=>b.classList.toggle('on', b.dataset.val === 'yes'));
+  syncGenderBtns(block);
 }
 function collectPatientsFromDOM(normalize=true){
   const list = [];
@@ -1594,9 +1633,13 @@ function collectPatientsFromDOM(normalize=true){
 }
 function validateStep2(){
   const list = collectPatientsFromDOM();
-  for(const p of list){
-    if(!p.name || !p.phone || !p.degmada){ toast("Fadlan buuxi Magaca, Telefoonka iyo Degmada."); return false; }
-    if(String(p.phone).replace(/\D/g,'').length < 7){ toast("Lambarka telefoonku waa inuu ahaadaa ugu yaraan 7 god."); return false; }
+  const blocks = document.querySelectorAll('.patient-block');
+  const flag = (i, sel, msg)=>{ const el = blocks[i] && blocks[i].querySelector(sel); if(el){ el.classList.add('f-err'); el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>el.focus(),350); el.addEventListener('input',()=>el.classList.remove('f-err'),{once:true}); el.addEventListener('change',()=>el.classList.remove('f-err'),{once:true}); } toast(msg); return false; };
+  for(let i=0;i<list.length;i++){ const p = list[i];
+    if(!p.name) return flag(i,'.p-name','✍️ Fadlan qor magaca bukaanka.');
+    if(!p.phone) return flag(i,'.p-phone','📞 Fadlan qor lambarka telefoonka.');
+    if(String(p.phone).replace(/\D/g,'').length < 7) return flag(i,'.p-phone','📞 Lambarka telefoonka waa gaaban yahay — hubi.');
+    if(!p.degmada) return flag(i,'.p-degmada','📍 Fadlan dooro degmada.');
   }
   state.patients = list;
   const slot = computeAssignedSlotLocal(state.doctorKey);
@@ -1794,7 +1837,7 @@ function handleCardPhotoUpload(event){
 function fillPatientFromCard(card){
   const b = document.querySelector('.patient-block[data-idx="0"]'); if(!b) return;
   b.querySelector('.p-name').value = card.name || ''; b.querySelector('.p-phone').value = card.phone || '';
-  b.querySelector('.p-degmada').value = card.degmada || ''; if(card.gender) b.querySelector('.p-gender').value = card.gender; if(card.age) setAgeInput(b.querySelector('.p-age'), card.age);
+  b.querySelector('.p-degmada').value = card.degmada || ''; if(card.gender){ b.querySelector('.p-gender').value = card.gender; syncGenderBtns(b); } if(card.age) setAgeInput(b.querySelector('.p-age'), card.age);
 }
 function manualCardEntry(){ const id = prompt("Geli Card ID-ga (tusaale: BH-CARD-0001):"); if(id) handleScannedValue(id); else closeScanner(); }
 function closeScanner(){ $('qrModal').classList.remove('active'); if(qrRAF){ cancelAnimationFrame(qrRAF); qrRAF=null; } if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream=null; } }
