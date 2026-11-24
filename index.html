@@ -160,7 +160,7 @@
   .announce .a-x{background:none;border:none;color:#93651a;font-size:15px;padding:2px 4px;opacity:.75}
 
   #printArea{display:none}
-  @media print{@page{size:A4;margin:10mm}html,body{background:#fff!important}body>*:not(#printArea){display:none!important}#printArea{display:block!important;position:static;width:100%;padding:0;zoom:0.93}#printArea *{visibility:visible}}
+  @media print{@page{size:A4;margin:0}html,body{background:#fff!important}body>*:not(#printArea){display:none!important}#printArea{display:block!important;position:static;width:100%;padding:10mm 11mm;box-sizing:border-box;zoom:0.93}#printArea *{visibility:visible}}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
   body{background:
