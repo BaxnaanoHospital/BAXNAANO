@@ -160,7 +160,7 @@
   .announce .a-x{background:none;border:none;color:#93651a;font-size:15px;padding:2px 4px;opacity:.75}
 
   #printArea{display:none}
-  @media print{body *{visibility:hidden}#printArea,#printArea *{visibility:visible}#printArea{display:block;position:fixed;top:0;left:0;width:100%;padding:24px}}
+  @media print{@page{size:A4;margin:10mm}html,body{background:#fff!important}body>*:not(#printArea){display:none!important}#printArea{display:block!important;position:static;width:100%;padding:0;zoom:0.93}#printArea *{visibility:visible}}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
   body{background:
@@ -1313,13 +1313,109 @@ window.addEventListener('pageshow', retrySyncIfNeeded);
 window.addEventListener('focus', retrySyncIfNeeded);
 
 /* ==================== PRINT ==================== */
+const BAX_QR_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANgAAADYAQAAAAChWxBAAAAA80lEQVR42t2YOw7DMAxDyaD3v/LroI+doQcok8AO5ImQRFI2+vk8+v8zce28Iwn4Po3HteHFaYXgkwuRT6lWJAHfOTOW6gvqv9eZ4c5iSn2yRSkVQBL587xB/HnK0Yc/s/QPOmdI8yvIyJ+gMA48iQml9B+t6UMsgzJEH3A3nmGyh5yif5Ws8TCybJfOx9TnttzWJzn919SywsfGY/Bx6OWimhj+vNUBFJW/278guRxMRTP8tY//nMmWqPlh53djenqwRIz/nJV1MDnzw/MSQtMXMGTO7yrrgkxIfV7zO1Y1oPsWJgSfVynwSqLlMP3LvL/+Ap7csDGyylSyAAAAAElFTkSuQmCC';
+function fmtIntlPhone(n){ const d = String(n||'').replace(/\D/g,''); if(d.length === 12 && d.startsWith('252')) return `+252 ${d.slice(3,5)} ${d.slice(5,8)} ${d.slice(8)}`; return d ? '+'+d : ''; }
 function printReceipt(id){
   const a = load(APPTS_KEY, []).find(x=>x.id===id); if(!a) return;
   const s = getSettings();
   const orderType = a.orderType || getOrderType(a.createdAt);
-  const night = orderType === 'Night Order' ? `<div style="margin:16px 0;padding:12px;border:1px solid #f59e0b;background:#fffbeb;color:#78350f;font-size:13px;line-height:1.6;"><b>Fiiro gaar ah:</b> Dalabkan habeenkii ayaa la soo diray — waxaa lagu shaqeynayaa subaxda xigta (${escapeHtml(fmtTime(s.nightWorkStart))}).</div>` : '';
   const pts = getAppointmentPatients(a);
-  document.getElementById('printArea').innerHTML = `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;"><div style="text-align:center;margin-bottom:18px;"><img src="${LOGO_DATA_URI}" style="width:64px;height:64px;object-fit:contain"><h2 style="color:#0f2a3d;margin:6px 0 2px;font-size:22px;">${escapeHtml(s.hospitalName.toUpperCase())}</h2><p style="color:#64748b;margin:0;font-size:13px;">Appointment Receipt</p></div><hr style="border:none;border-top:2px dashed #e2e8f0;margin:14px 0;"><p style="margin:7px 0;font-size:14px;"><b>Booking ID:</b> ${escapeHtml(a.id)}</p><p style="margin:7px 0;font-size:14px;"><b>Doctor:</b> ${escapeHtml(a.doctorName)} — ${escapeHtml(a.department)}</p><p style="margin:7px 0;font-size:14px;"><b>Date/Time:</b> ${fmtDate(a.date)}, ${fmtTime(a.time)}</p><p style="margin:7px 0;font-size:14px;"><b>Order Type:</b> ${orderType}</p><p style="margin:7px 0;font-size:14px;"><b>Status:</b> ${escapeHtml(getAppointmentStatus(a))}</p>${night}<hr style="border:none;border-top:2px dashed #e2e8f0;margin:14px 0;">${pts.map(p=>`<p style="margin:6px 0;font-size:13px;color:#334155;">${escapeHtml(p.name)} — ${escapeHtml(p.phone)} — ${escapeHtml(p.gender)}, ${escapeHtml(/^\d+$/.test(String(p.age||'')) ? p.age+'y' : (p.age||'-'))} — ${escapeHtml(p.degmada)}</p>`).join('')}<hr style="border:none;border-top:2px dashed #e2e8f0;margin:14px 0;"><p style="margin:8px 0;font-size:16px;font-weight:800;color:#0f2a3d;"><b>Total Fee:</b> $${fmtFee(a.fee)}</p><p style="color:#94a3b8;font-size:11px;margin-top:28px;text-align:center;">Waad ku mahadsan tahay inaad doorateen ${escapeHtml(s.hospitalName)}.<br>Generated on ${new Date().toLocaleString()}</p></div>`;
+  const doc = DOCTORS[a.doctorKey] || { name:a.doctorName, dept:a.department };
+  const photo = safeImgSrc(doc.photo);
+  const today = getTodayEatDate();
+  const dayLbl = a.date === today ? 'Maanta' : a.date === addDaysISO(today,1) ? 'Berri' : WEEKDAYS[new Date(a.date+'T00:00:00Z').getUTCDay()];
+  const paid = getAppointmentStatus(a) === 'Paid' || getAppointmentStatus(a) === 'Completed';
+  const addr = (!s.address || s.address === DEFAULT_SETTINGS.address) ? 'Zoobe KM5, Wadajir · Mogadishu' : s.address;
+  const wa = fmtIntlPhone(s.whatsapp), ph = fmtIntlPhone(s.phone);
+  const visit = v => v === 'yes' ? 'Hore u yimid' : v === 'no' ? 'New · Cusub' : '-';
+  const ageTxt = v => /^\d+$/.test(String(v||'')) ? v+' sano' : (v || '-');
+  const H = escapeHtml;
+  const row = (l,v,big)=>`<tr><td style="padding:4px 0;font-size:13px;color:#222">${l}</td><td style="padding:4px 0;text-align:right;font-weight:700;font-size:${big?'15px':'13.5px'}">${v}</td></tr>`;
+  const night = orderType === 'Night Order' ? `<div style="margin:10px 0 0;padding:8px 10px;border:1.5px solid #000;font-size:12.5px;line-height:1.5">🌙 <b>Dalab habeen:</b> waxaa lagu shaqeynayaa subaxda xigta marka shaqadu bilaabato ${H(fmtTime(s.nightWorkStart))}.</div>` : '';
+  const patientsHTML = pts.map((p,i)=>`
+      <div style="${i?'margin-top:10px;padding-top:8px;border-top:1px dashed #000;':''}">
+        <div style="font-size:18px;font-weight:800;letter-spacing:.01em;margin:2px 0 4px">${H(p.name||'-')}</div>
+        <table style="width:100%;border-collapse:collapse">
+          ${row('Mobile', H(p.phone||'-'), true)}
+          ${row("Da'da · Jinsi", `${H(ageTxt(p.age))} · ${H(p.gender||'-')}`)}
+          ${row('Degmada', H(p.degmada||'-'))}
+          ${row('Visit', H(visit(p.returning)))}
+        </table>
+      </div>`).join('');
+  document.getElementById('printArea').innerHTML = `
+  <div style="font-family:Helvetica,Arial,sans-serif;color:#000;max-width:680px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+    <div style="display:flex;align-items:center;gap:16px;padding-bottom:10px;border-bottom:4px double #000">
+      <img src="${LOGO_DATA_URI}" style="width:62px;height:62px;object-fit:contain;filter:grayscale(1)">
+      <div style="flex:1;text-align:center">
+        <div style="font-size:32px;font-weight:900;letter-spacing:.14em;line-height:1">${H((s.hospitalName||'Baxnaano Hospital').replace(/\s*hospital\s*$/i,'').toUpperCase())}</div>
+        <div style="font-size:15px;font-weight:700;letter-spacing:.5em;margin-top:6px">HOSPITAL</div>
+        <div style="font-size:12px;margin-top:6px">${H(addr)}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:9px">
+      <div style="flex:0 0 42%;border:4px double #000;padding:10px;text-align:center">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.18em">LAMBARKAAGA</div>
+        <div style="font-size:72px;font-weight:900;line-height:1;margin:4px 0">${a.queueNumber != null ? H(String(a.queueNumber)) : '–'}</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.16em">YOUR NUMBER</div>
+        <div style="font-size:11px;font-weight:700;margin-top:4px">${H(a.id)}</div>
+        <div style="border-top:1px solid #000;margin-top:8px;padding-top:6px;font-size:10.5px;line-height:1.45">Sug inta lambarkaaga la yeerayo<br>Please wait until your number is called</div>
+      </div>
+      <div style="flex:1;border:3px solid #000;padding:10px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        ${photo ? `<img src="${photo}" style="width:82px;height:82px;object-fit:cover;border:3px solid #000;filter:grayscale(1)">` : ''}
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:.18em;margin-top:8px">DOCTOR · DHAKHTARKA</div>
+        <div style="font-size:17px;font-weight:800;line-height:1.2;margin-top:3px">${H((doc.name||a.doctorName||'').toUpperCase())}</div>
+        <div style="font-size:13px;font-weight:700;margin-top:4px">${H(doc.dept||a.department||'')}</div>
+      </div>
+    </div>
+
+    <div style="margin-top:9px;border:3px solid #000;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div><div style="font-size:11px;font-weight:700;letter-spacing:.16em">BALLANKAAGA · APPOINTMENT</div>
+        <div style="font-size:20px;font-weight:900;margin-top:2px">${H(dayLbl)} · ${H(fmtDate(a.date))}</div></div>
+      <div style="text-align:right"><div style="font-size:11px;font-weight:700;letter-spacing:.16em">WAQTIGA · TIME</div>
+        <div style="font-size:24px;font-weight:900">${H(fmtTime(a.time))}</div></div>
+    </div>
+
+    <div style="display:flex;gap:14px;margin-top:9px">
+      <div style="flex:1.15;min-width:0">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.16em;border-bottom:3px solid #000;padding-bottom:4px">PATIENT · BUKAANKA</div>
+        ${patientsHTML}
+      </div>
+      <div style="flex:1;border-left:2px solid #000;padding-left:12px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.16em;border-bottom:3px solid #000;padding-bottom:4px">PAYMENT · LACAG BIXINTA</div>
+        <table style="width:100%;border-collapse:collapse;margin-top:4px">
+          ${row('Amount', '$ '+fmtFee(a.fee), true)}
+          ${row('Payment', 'USSD · EVC')}
+          ${row('Status', paid ? 'La bixiyay ✓' : 'Sugaya')}
+          ${row('Booked', H(new Date(a.createdAt).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Africa/Mogadishu'})))}
+        </table>
+      </div>
+    </div>
+    ${night}
+
+    <div style="margin-top:9px;border:2px solid #000;padding:9px 12px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.16em;margin-bottom:5px">TALOOYIN · FADLAN XUSUUSO</div>
+      <ol style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.5">
+        <li>Imow <b>15 daqiiqo</b> ka hor waqtiga ballankaaga.</li>
+        <li>Soo qaado <b>warqadaha baaritaannadii hore</b>, sawirrada (MRI / CT / X-ray) iyo <b>daawooyinka</b> aad qaadato.</li>
+        <li>Kaarkan tus <b>qolka diiwaangelinta (reception)</b> marka aad timaado.</li>
+        <li>Saacadaha shaqada: <b>${H(fmtTime(s.openTime))} – ${H(fmtTime(s.closeTime))}</b>.</li>
+        ${wa ? `<li>Su'aal ama ballan beddel: <b>WhatsApp ${H(wa)}</b>${ph ? ` · Tel <b>${H(ph)}</b>` : ''}</li>` : ''}
+      </ol>
+    </div>
+
+    <div style="margin-top:9px;border:2px dashed #000;padding:8px;text-align:center;font-size:13.5px;font-weight:800;line-height:1.5">WAAD KU MAHADSANTAHAY DOORASHADA AAD NA DOORATEEN<br><span style="font-weight:600;font-size:12px">${H(s.tagline||'Treatment and beyond')}</span></div>
+
+    <div style="margin-top:9px;border:3px solid #000">
+      <div style="text-align:center;font-size:15px;font-weight:800;letter-spacing:.14em;padding:6px;border-bottom:3px solid #000">BALLAN ONLINE · ONLINE BOOKING</div>
+      <div style="display:flex;align-items:center;gap:14px;padding:10px">
+        <img src="${BAX_QR_URI}" style="width:96px;height:96px;image-rendering:pixelated">
+        <div><div style="font-size:14px;font-weight:700;line-height:1.45">Gurigaaga adigoo jooga ayaad lambar Baxnaano ka jari kartaa, ehelkaagana u jari kartaa.</div>
+          <div style="font-size:26px;font-weight:900;margin-top:6px">baxnaano.com</div></div>
+      </div>
+    </div>
+    <div style="border-top:2px solid #000;margin-top:10px;padding-top:6px;text-align:center;font-size:11.5px">Fadlan ku hay kaarkan · Keep this ticket</div>
+  </div>`;
   window.print();
 }
 
