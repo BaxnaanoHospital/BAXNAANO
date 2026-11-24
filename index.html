@@ -638,7 +638,7 @@ const ANNOUNCE_KEY = "bh_announcement";
 const DOCTORS_KEY = "bh_doctors";
 const SETTINGS_KEY = "bh_app_settings";
 const ADMIN_OVERRIDE_KEY = "bh_doctor_lock_override";
-const DEFAULT_ADMIN_PIN = "ANAANI321";
+const DEFAULT_ADMIN_PIN = null; // PIN-ka waxaa hubiya server-ka (admin-auth)
 
 /* Hook-yada bog kasta (public/admin) wuu buuxiyaa */
 const HOOKS = { remote(){}, doctors(){}, doctorsPushed(){}, settings(){}, lock(){}, sync(){} };
@@ -1040,6 +1040,15 @@ function countUniquePatients(appointments){
   appointments.forEach(a=>(a.patients||[]).forEach(p=>{ const id = patientIdentity(p); if(id) ids.add(id); }));
   return ids.size;
 }
+/* Bogga dadweynaha: ballan cusub waxaa lagu abuuraa RPC aamin ah (insert-only, status = Pending).
+   Ma akhriyo, ma beddelo, mana tirtiro xogta bukaannada kale. */
+async function createBookingRPC(appt){
+  const b = { id:appt.id, created_at:appt.createdAt, doctor_key:appt.doctorKey||null, doctor_name:appt.doctorName||null, department:appt.department||null,
+    date:appt.date||null, time:appt.time||null, queue_number:appt.queueNumber ?? null, fee:appt.fee||0 };
+  const pts = (appt.patients||[]).map(p=>({ name:p.name, phone:p.phone||null, age:p.age||null, gender:p.gender||null, degmada:p.degmada||null, is_returning:p.returning||null }));
+  const { error } = await DB.client.rpc('create_online_booking', { p_booking: b, p_patients: pts });
+  if(error) throw error;
+}
 async function ensureBookingPatients(appt){
   if(!appt || !appt.id || !Array.isArray(appt.patients) || !appt.patients.length) return;
   if(bookingPatientPushes.has(appt.id)) return bookingPatientPushes.get(appt.id);
@@ -1074,6 +1083,7 @@ const ENTITY_ADAPTERS = {
       })).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
     },
     async push(records){
+      if(APP_PAGE !== 'admin'){ for(const a of records){ if(a && a.id && Array.isArray(a.patients) && a.patients.length) await createBookingRPC(a); } return; }
       const rows = records.map(a=>({ id:a.id, created_at:a.createdAt||new Date().toISOString(), doctor_key:a.doctorKey||null,
         doctor_name:a.doctorName||null, department:a.department||null, date:a.date||null, time:a.time||null,
         queue_number:a.queueNumber||null, fee:a.fee||0, status:a.status||'Pending', order_type:a.orderType||null, payment_method:a.paymentMethod||null, paid_at:a.paidAt||null }));
@@ -1208,6 +1218,7 @@ const DB = {
   },
   async persist(key, data){
     if(!this.enabled || !this.client) return;
+    if(APP_PAGE !== 'admin' && key !== APPTS_KEY) return; // bogga dadweynaha wax kale ma qoro
     const adapter = ENTITY_ADAPTERS[key]; if(!adapter) return;
     this._persistQueue = this._persistQueue.then(async ()=>{
       try{
@@ -1316,7 +1327,7 @@ async function retrySyncIfNeeded(){
     await refreshFromSupabase();
     Object.keys(ENTITY_ADAPTERS).forEach(key=>{
       if(ENTITY_ADAPTERS[key].manualPush) return;
-      if(key === ANNOUNCE_KEY && APP_PAGE !== 'admin') return;
+      if(APP_PAGE !== 'admin' && key !== APPTS_KEY) return; // bogga dadweynaha: kaliya ballamahiisa
       const data = load(key, null);
       if(data !== null) DB.persist(key, data);
     });
@@ -1836,17 +1847,7 @@ function renderSummary(){
 }
 async function fastPushBooking(appt){
   if(!DB.enabled || !DB.client) return;
-  const row = { id:appt.id, created_at:appt.createdAt, doctor_key:appt.doctorKey||null, doctor_name:appt.doctorName||null, department:appt.department||null,
-    date:appt.date||null, time:appt.time||null, queue_number:appt.queueNumber||null, fee:appt.fee||0, status:appt.status||'Pending',
-    order_type:appt.orderType||getOrderType(appt.createdAt), payment_method:appt.paymentMethod||null, paid_at:appt.paidAt||null };
-  const { error } = await DB.client.from('online_bookings').upsert(row, {onConflict:'id'});
-  if(error){
-    if(!String(error.message||error).toLowerCase().includes('order_type')) throw error;
-    delete row.order_type;
-    const { error: e2 } = await DB.client.from('online_bookings').upsert(row, {onConflict:'id'});
-    if(e2) throw e2;
-  }
-  await ensureBookingPatients(appt);
+  await createBookingRPC(appt);
   markSynced(APPTS_KEY, [appt]);
 }
 async function confirmBooking(){
@@ -1913,8 +1914,9 @@ async function fetchOdooQueue(apptId){
     fetch(`${SUPABASE_URL}/functions/v1/odoo-sync`, { method:'POST', mode:'no-cors', body: JSON.stringify({ action:'queue', booking_id: apptId }) }).catch(()=>{});
   }catch(e){}
   await new Promise(r=>setTimeout(r, 2500));
-  const { data, error } = await DB.client.from('online_booking_patients').select('id,odoo_queue,odoo_queue_label').eq('booking_id', apptId).order('id');
+  const { data, error } = await DB.client.rpc('get_booking_queue', { p_booking: apptId });
   if(error || !data) return null;
+  data.sort((x,y)=>x.idx-y.idx);
   const all = load(APPTS_KEY, []), a = all.find(x=>x.id===apptId); if(!a) return null;
   (a.patients||[]).forEach((p,i)=>{ const r = data[i]; if(r && r.odoo_queue != null){ p.odooQueue = r.odoo_queue; p.odooQueueLabel = r.odoo_queue_label || ''; } });
   a.odooQueue = (a.patients||[]).map(p=>p.odooQueue).find(q=>q != null);
