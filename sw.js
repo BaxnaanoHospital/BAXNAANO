@@ -1,59 +1,51 @@
 /* ============================================================
-   Baxnaano Booking — Service Worker
-   MUHIIM: app-ku wuxuu ku jiraa horumarin firfircoon (fix-yo joogto
-   ah ayaa la sii daayaa) — sidaas darteed NETWORK-FIRST ayaan
-   isticmaaleynaa app-shell-ka (index.html iwm): marka internet la
-   haysto, koodhka UGU CUSUB ayaa mar walba la soo qaataa; cache-ga
-   waxaa loo isticmaalaa KALIYA marka internet la waayo (offline
-   fallback). Xogta (Supabase API, CDN scripts) had iyo jeer NETWORK
-   ayaa la isticmaalayaa — lama cache-gareynayo.
+   Baxnaano Booking — Service Worker (v3, fudud & degdeg)
+   - App-ka (index.html): NETWORK-FIRST laakiin 2.5 ilbiriqsi kadib
+     haddii network-ku gaabis yahay, nuqulka cache-ga ayaa isla markiiba
+     la tusayaa (koodhka cusubna gadaal ayuu ku soo degayaa).
+   - CDN scripts (Supabase-js, SweetAlert2, jsQR) iyo fonts: cache-ga ayaa
+     marka hore la isticmaalaa oo gadaal ayaa la cusboonaysiiyaa
+     (stale-while-revalidate) — mar labaad app-ku si degdeg ah ayuu u furmaa.
+   - Xogta (Supabase API) had iyo jeer NETWORK — lama cache-gareeyo.
 ============================================================ */
-const CACHE_NAME = 'baxnaano-booking-v2'; // MUHIIM: koror lambarkan mar kasta oo aad rabto in cache-yadii hore la nadiifiyo
-const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
-];
+const CACHE_NAME = 'baxnaano-booking-v3';
+const LIB_CACHE = 'baxnaano-libs-v1';
+const APP_SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const LIB_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(()=>{})
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(APP_SHELL)).catch(() => {}));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
-    )
+    caches.keys().then((names) => Promise.all(names.filter((n) => n !== CACHE_NAME && n !== LIB_CACHE).map((n) => caches.delete(n))))
   );
   self.clients.claim();
 });
 
+function networkFirst(req) {
+  const net = fetch(req).then((res) => {
+    if (res && res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {}); }
+    return res;
+  });
+  const timeout = new Promise((resolve) => setTimeout(() => caches.match(req).then((hit) => hit && resolve(hit)), 2500));
+  return Promise.race([net.catch(() => caches.match(req)), timeout]).then((r) => r || net);
+}
+
+function staleWhileRevalidate(req) {
+  return caches.open(LIB_CACHE).then((cache) => cache.match(req).then((hit) => {
+    const net = fetch(req).then((res) => { if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone()).catch(() => {}); return res; }).catch(() => hit);
+    return hit || net;
+  }));
+}
+
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // Kaliya same-origin GET requests ayaan wax ka qabanaynaa (app-shell-ka
-  // kaliya) — CDN-yada (jsQR/SweetAlert2/Supabase-js) iyo Supabase API-ga
-  // (mid kale oo origin ah) had iyo jeer NETWORK ayaa loo mariyaa toos ah.
-  if(event.request.method !== 'GET' || url.origin !== self.location.origin){
-    return; // ha faragelin — browser-ku sida caadiga ah ha u qabto
-  }
-
-  // NETWORK-FIRST: isku day network-ka marka hore — haddii uu guuleysto,
-  // isla markiiba isticmaal jawaabtiisa (koodhka UGU CUSUB) oo cusboonaysii
-  // cache-ga si loo diyaariyo xaalad offline oo mustaqbalka ah. Kaliya
-  // haddii network-ku fashilmo (offline) ayaan u noqonaynaa cache-ga.
-  event.respondWith(
-    fetch(event.request).then((response) => {
-      if(response && response.ok){
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(()=>{});
-      }
-      return response;
-    }).catch(() => caches.match(event.request))
-  );
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin === self.location.origin) { event.respondWith(networkFirst(req)); return; }
+  if (LIB_HOSTS.includes(url.hostname)) { event.respondWith(staleWhileRevalidate(req)); return; }
+  // Supabase API iyo wixii kale: browser-ka ha u daayo (network).
 });
