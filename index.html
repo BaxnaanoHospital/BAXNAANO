@@ -1959,18 +1959,31 @@ let _payVoice = null;
 function getPayVoice(){ if(!_payVoice){ _payVoice = new Audio(PAY_VOICE_SRC); _payVoice.preload = 'auto'; _payVoice.setAttribute('playsinline',''); } return _payVoice; }
 /* iPhone (iOS) wuxuu codka u oggol yahay kaliya marka qofku taabto — sidaas darteed
    taabashada ugu horreysa ayaan codka "furaynaa" (unlock), kadibna si toos ah ayuu u shaqeeyaa. */
-let _voiceUnlocked = false, _voicePending = false;
+let _voiceUnlocked = false, _voicePendingUntil = 0, _voiceStepToken = 0;
 function unlockPayVoice(){
-  if(_voicePending && currentStep === 3){ _voicePending = false; playPayVoice(); return; }
+  // Codkii la xannibay: kaliya haddii weli bogga lacag-bixinta la joogo oo 8 ilbiriqsi aan dhaafin
+  if(_voicePendingUntil && Date.now() < _voicePendingUntil && currentStep === 3 && $('view-booking').classList.contains('active')){ _voicePendingUntil = 0; playPayVoice(); return; }
+  _voicePendingUntil = 0;
   if(_voiceUnlocked) return;
-  try{ const v = getPayVoice(); v.muted = true; const pr = v.play();
-    const done = ()=>{ v.pause(); v.currentTime = 0; v.muted = false; _voiceUnlocked = true; };
-    if(pr && pr.then) pr.then(done).catch(()=>{ v.muted = false; }); else done();
-  }catch(e){}
+  _voiceUnlocked = true;
+  try{ const v = getPayVoice(); v.muted = true; // aamus — furitaanka iPhone-ka oo keliya, cod lama maqlo
+    const pr = v.play();
+    const done = ()=>{ try{ v.pause(); v.currentTime = 0; }catch(e){} }; // muted wuu sii jiraa ilaa codka dhabta ah
+    if(pr && pr.then) pr.then(done).catch(()=>{ _voiceUnlocked = false; }); else done();
+  }catch(e){ _voiceUnlocked = false; }
 }
 ['touchend','click','keydown'].forEach(ev=>document.addEventListener(ev, unlockPayVoice, {capture:true, passive:true}));
-function playPayVoice(){ try{ const v = getPayVoice(); v.muted = false; v.volume = 1; v.currentTime = 0; const pr = v.play(); if(pr && pr.catch) pr.catch(()=>{ _voicePending = true; }); }catch(e){ _voicePending = true; } }
-function stopPayVoice(){ _voicePending = false; try{ if(_payVoice){ _payVoice.pause(); _payVoice.currentTime = 0; } }catch(e){} }
+function playPayVoice(){
+  if(document.visibilityState !== 'visible') return;
+  try{ const v = getPayVoice(); v.pause(); v.currentTime = 0; v.muted = false; const pr = v.play();
+    if(pr && pr.catch) pr.catch(()=>{ v.muted = true; _voicePendingUntil = Date.now() + 8000; });
+  }catch(e){}
+}
+function stopPayVoice(){ _voicePendingUntil = 0; try{ if(_payVoice){ _payVoice.pause(); _payVoice.currentTime = 0; _payVoice.muted = true; } }catch(e){} }
+// Marka app-ka laga baxo (USSD/dialer) ama dib loo soo galo: codku ha istaago, ha is-bilaabin
+document.addEventListener('visibilitychange', ()=>{ stopPayVoice(); });
+window.addEventListener('pagehide', stopPayVoice);
+window.addEventListener('pageshow', stopPayVoice);
 /* ---------- iPhone: daaqadda "Call" — fallaar kor ka timaada + cod ---------- */
 function isIOS(){ return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
 function showCallHint(){
